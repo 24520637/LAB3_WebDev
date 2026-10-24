@@ -1,6 +1,7 @@
 import { Fragment, useId, useState } from 'react';
 import SkillBadge from './SkillBadge.jsx';
 import profileAvatar from '../assets/huong-avatar.png';
+import styles from './DeveloperCard.module.css';
 
 function getSafeAvatarUrl(avatarUrl) {
   if (avatarUrl === profileAvatar) {
@@ -47,10 +48,11 @@ export default function DeveloperCard({
   const avatarSrc = getSafeAvatarUrl(avatarUrl);
 
   return (
-    <article aria-labelledby={headingId}>
-      <header>
+    <article className={styles.card} aria-labelledby={headingId}>
+      <header className={styles.header}>
         {avatarSrc && avatarSrc !== failedAvatarUrl ? (
           <img
+            className={styles.avatar}
             src={avatarSrc}
             alt={`Profile avatar for ${displayName}`}
             width={96}
@@ -58,27 +60,31 @@ export default function DeveloperCard({
             onError={() => setFailedAvatarUrl(avatarSrc)}
           />
         ) : (
-          <span role="img" aria-label={`Avatar initials for ${displayName}`}>
+          <span
+            className={`${styles.avatar} ${styles.avatarFallback}`}
+            role="img"
+            aria-label={`Avatar initials for ${displayName}`}
+          >
             {initials}
           </span>
         )}
-        <h2 id={headingId}>{displayName}</h2>
-        {role && <p>{role}</p>}
+        <h2 className={styles.name} id={headingId}>{displayName}</h2>
+        {role && <p className={styles.role}>{role}</p>}
       </header>
 
-      <dl>
+      <dl className={styles.metrics}>
         {Object.entries(metrics).map(([label, value]) => (
           <Fragment key={label}>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dt className={styles.metricLabel}>{label}</dt>
+            <dd className={styles.metricValue}>{value}</dd>
           </Fragment>
         ))}
       </dl>
 
-      <ul aria-label="Skills">
+      <ul className={styles.skills} aria-label="Skills">
         {skills.map((skill) => (
-          <li key={skill.id}>
-            <SkillBadge label={skill.label} />
+          <li className={styles.skillItem} key={skill.id}>
+            <SkillBadge label={skill.label} className={styles.badge} />
           </li>
         ))}
       </ul>
