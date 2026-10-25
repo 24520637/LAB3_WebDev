@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.vitest/
+*.local
+.env
+.env.*
+!.env.example
+*.log

@@ -1,0 +1,108 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #172033;
+  background: #f5f7fa;
+  line-height: 1.5;
+  font-synthesis: none;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 60rem;
+  margin-inline: auto;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  font-size: clamp(1.6rem, 5vw, 2.5rem);
+  line-height: 1.2;
+}
+
+.squad-selector {
+  min-width: 0;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid #788396;
+}
+
+.squad-selector legend {
+  font-weight: 700;
+}
+
+.squad-buttons {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.squad-buttons button {
+  min-width: 0;
+  min-height: 44px;
+  width: 100%;
+  padding: 0.75rem;
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  border: 2px solid #788396;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+
+.squad-buttons button[aria-pressed='true'] {
+  border-color: #172033;
+  background: #172033;
+  color: #fff;
+  font-weight: 700;
+}
+
+.selection-label {
+  display: block;
+  font-size: 0.875rem;
+}
+
+.squad-buttons button:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 3px;
+}
+
+.telemetry-card {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #788396;
+  background: #fff;
+}
+
+.telemetry-card h2 {
+  margin-top: 0;
+}
+
+.telemetry-card dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+  margin-bottom: 0;
+}
+
+.telemetry-card dt {
+  font-weight: 700;
+}
+
+.telemetry-card dd {
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .squad-buttons {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
