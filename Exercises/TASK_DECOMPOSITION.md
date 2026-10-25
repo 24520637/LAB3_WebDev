@@ -2,413 +2,414 @@
 
 ## 1. Project Objective
 
-Build a React 19 developer/pro-gamer profile card using semantic HTML, reusable skill badges, scoped CSS, a safe avatar fallback, and mobile-first layout. Integrate the existing P1/P2 implementation into a runnable application.
-
-**Current state:** P1 and P2 are implemented and already committed. The application shell, dependency manifest/lockfile, and Vite configuration were added during integration because no runnable React starter existed. The QA audit on 2026-10-25 confirmed the normal app, production preview, real image-error fallback, long-content wrapping, empty collections, URL rejection, and multiple-card IDs. No assignment-scope code defect was found, so production source was not rewritten. This document distinguishes completed checks from remaining work; unchecked boxes are pending.
+Plan a React 19 profile card composed of `DeveloperCard` and reusable `SkillBadge` function components. Combine the developer-card and user-profile concepts attributed to Lab 2 Exercises 4.4 and 4.5 in the user's specification. Prioritize semantic structure, safe avatar handling, accessible content, and a layout that fits a 375px viewport.
 
 ## 2. Exercise Scope and Constraints
 
-### Verified project context
+### Inspection findings and source boundaries
 
-All relative paths below are rooted at `C:/Users/buing/OneDrive/Documents/WebDev/LAB3_WebDev/Exercises`.
+Paths below are relative to `C:/Users/buing/OneDrive/Documents/WebDev/LAB3_WebDev/Exercises`, unless an absolute path is given.
 
-| Item | Current finding |
+| Item | Observed evidence and planning consequence |
 | --- | --- |
-| Rules | `PROJECT_RULES.md` is the actual rules file. No applicable `AGENTS.md` was found in the inspected ancestors or source directories. No project README was present. |
-| Git | Repository root: `C:/Users/buing/OneDrive/Documents/WebDev/LAB3_WebDev`. Git is already initialized; do not initialize it again. |
-| P1 | `src/components/DeveloperCard.jsx`, `src/components/SkillBadge.jsx`, and `src/assets/huong-avatar.png` exist. |
-| P2 | `src/components/DeveloperCard.module.css` exists and is imported by DeveloperCard. SkillBadge receives its module class through its existing `className` prop. |
-| Integration | `index.html` → `src/main.jsx` → `src/App.jsx` → DeveloperCard. No duplicate `src/index.jsx`, alternate entry point, or router was added. |
-| Dependencies | `package.json` and `package-lock.json` pin React/React DOM 19.3.1, Vite 8.3.5, and @vitejs/plugin-react 6.1.2. These are local project dependencies, not reliance on the unrelated ancestor package. |
-| Tooling | `vite.config.js` enables the React plugin and relative production asset paths. Node v26.8.2 and npm 11.19.1 were used. No project test/lint scripts or test framework are configured. |
-| Earlier missing-starter finding | Accurate at planning/P1/P2 time, but resolved by the current integration. The absence of a starter was explained before adding minimal setup. |
-| Lab 2 | Inspected `../LAB2_Exercises/js/mini-react.js`, `js/app.js`, `index.html`, `js/test-runner.js`, its rules/WBS, and relevant tests. Also inspected `C:/Users/buing/OneDrive/Documents/WebDev/LAB2_WebDev/LAB2_EXERCISES.zip`. Its MiniReact/Todo code remains unchanged. |
-| Assignment materials | The user's supplied Exercise 1 requirements are available. Original slide visuals and Lab 2 Exercises 4.4/4.5 card source were not found in the inspected material; exact slide appearance remains unverified. |
+| Current Lab 3 directory | Contains only `PROJECT_RULES.md` before this document was created. Its rules were read and govern this plan. |
+| Requested instruction files | No `PROJECT_RULE.md`, `AGENTS.md`, `README.md`, `package.json`, or existing `TASK_DECOMPOSITION.md` in this directory; no ancestor `AGENTS.md` found. The actual rules filename is plural: `PROJECT_RULES.md`. |
+| Lab 3 starter | No `src`, React entry point, stylesheet, lockfile, project dependencies, test runner, or build configuration found here. Sibling `../HomeWork` is empty. React 19 installation and CSS Module support remain unverified. |
+| Ancestor package | `C:/Users/buing/package.json` exists, with MongoDB and development dependencies including Testing Library, jsdom, and tsx. It does not establish a Lab 3 React app, scripts, or supported test setup. Do not adopt it as this project's configuration. |
+| Git | `git status --short` and `git rev-parse --show-toplevel` report that this directory is not a Git repository. Commit tasks require the actual intended repository first. |
+| Lab 2 archive | Inspected `C:/Users/buing/OneDrive/Documents/WebDev/LAB2_WebDev/LAB2_EXERCISES.zip`: contains an `Exercises/` tree with JavaScript, tests, HTML, CSS, rules, and planning documents. Read `Exercises/js/mini-react.js` and `Exercises/js/app.js` directly from the archive without extracting files. |
+| Existing Lab 2 copy | Inspected `../LAB2_Exercises/js/mini-react.js`, `../LAB2_Exercises/js/app.js`, `../LAB2_Exercises/index.html`, `../LAB2_Exercises/js/test-runner.js`, `../LAB2_Exercises/PROJECT_RULE.md`, and its existing `TASK_DECOMPOSITION.md`. Core runtime/app behavior matches the archive content inspected. Lab 2 rules and milestone messages are historical context, not Lab 3 acceptance requirements. |
+| Relevant Lab 2 tests | Read `../LAB2_Exercises/tests/createTextElement.test.js`, `createElement.test.js`, `renderToDOM.test.js`, `stateStore.test.js`, `stateCursor.test.js`, `task-2-6-test.js`, and `task-2-9-test.js`. They use Node test/assert APIs; some use jsdom and others mock DOM objects. These are MiniReact tests, not a verified Lab 3 test suite. |
+| Slide and Exercises 4.4/4.5 | No slide file or implementation for those two cards was found in the inspected Lab 3 tree or archive listing. Use the requirements supplied in the user's request; exact visual design, metric names, skill labels, and profile content are unverified. Do not invent additional slide requirements. |
 
-### Requirements and agreed decisions
+### Required boundaries
 
-- Use real React function components, JSX, and `createRoot`; never transplant MiniReact's runtime.
-- DeveloperCard contains zero JSX `div` elements. The HTML host's `div#root` is outside DeveloperCard and is permitted.
-- Preserve `article`, `header`, `h2`, `dl`/`dt`/`dd`, and `ul`/`li`. Associate the article with the unique heading ID from React `useId`.
-- Map `Object.entries(metrics)` to keyed Fragments, and skills to list items keyed by `skill.id`.
-- Retain the user's name, **Huong Bui Nguyen Quynh**, and uploaded portrait. The user explicitly confirmed keeping the local photo. Do not replace it with a generated avatar or upload it to obtain an HTTPS URL.
-- The bundled local portrait is the agreed exception to a literal remote HTTPS-avatar requirement. Any remote `avatarUrl` override must still parse as HTTPS; malformed or insecure overrides select initials. Local development uses HTTP loopback; this is not an insecure external avatar URL.
-- Keep meaningful image alt text and explicit 96×128 attributes, matching the portrait's 3:4 aspect ratio. Preserve React-driven initials fallback without retry loops.
-- CSS Modules own presentation; no inline style objects or global styling framework. Default rules are mobile-first; `min-width: 40rem` enhances the same DOM for wider screens.
-- No forms, editing, filtering, fetching, persistence, animation, extra game functionality, or unrelated dependencies.
+- Use real React 19 and the actual starter's conventions once available. Never copy MiniReact, its state engine, renderer, or delegation registry into Lab 3.
+- `DeveloperCard.jsx` must contain zero opening or closing `div` tags. Choose semantic elements by meaning; a Fragment adds no DOM wrapper.
+- Associate the root `article` with its heading through `aria-labelledby`. Use `header`, a suitable heading, optional `hgroup` for a heading and related subtitle, `dl`/`dt`/`dd` for metrics, and `ul`/`li` for skills.
+- Render metrics through `Object.entries(metrics).map(...)`; use a keyed React `Fragment` to group each term/value pair. Use stable `skill.id` keys for skills.
+- Use `DeveloperCard.module.css`, scoped classes, and useful CSS custom properties. No inline style objects or replacement global styling system.
+- Remote avatar sources must use HTTPS. Provide meaningful image alt text, explicit width and height, and visible initials when loading fails.
+- Fit the page at 375px without horizontal overflow; verify applicable WCAG 2.2 AA contrast and accessibility requirements.
+- Do not add forms, editing, filtering, fetching, persistence, animation, ranking systems, UI libraries, or extra interactions. “Pro-Gamer” describes the assigned profile concept; it does not require a game.
+- Hooks and effects are not general requirements for a static card. A small React `onError` handler and real React state are appropriate if chosen to implement the required avatar fallback; no custom hook engine or `useEffect` synchronization is needed.
 
-### Actual data contract
+### Proposed implementation paths
 
-`src/App.jsx` owns a static `profile` object and passes it through `<DeveloperCard {...profile} />`.
+**Every path in this table is proposed and currently absent.** Confirm the starter root in TASK 1.1 before creating files. If the supplied starter differs, update this document and verification commands to its verified paths.
 
-| Prop | Actual value/shape |
+| Proposed path | Purpose |
 | --- | --- |
-| `name` | `Huong Bui Nguyen Quynh` |
-| `role` | `Frontend Developer & Pro-Gamer` |
-| `avatarUrl` | Imported `src/assets/huong-avatar.png`; remote alternatives must use HTTPS |
-| `metrics` | Object: Projects = 12; Years of experience = 2; Matches won = 128 |
-| `skills` | Array of unique `{ id, label }` entries for React 19, JavaScript, CSS, Valorant |
-| SkillBadge props | `label` plus optional `className`; parent owns the `li` and key |
+| `src/components/DeveloperCard.jsx` | Card structure, metrics, skill composition, avatar fallback |
+| `src/components/SkillBadge.jsx` | Reusable, non-interactive skill label |
+| `src/components/DeveloperCard.module.css` | Scoped card and badge styling, responsive rules, tokens |
 
-Role, metrics, and skills are user-authorized sample data, not factual biography or additional slide requirements. Props are read-only. Initials are derived from the first two name words; the current name gives HB. A blank name uses Developer/D. Empty collections render without invented content, and metric zero remains visible. Avatar failure is the only stateful behavior; no effect is needed.
+The application entry point, sample-data location, test files, and package scripts are **unresolved**. Reuse their actual locations when supplied; this plan does not invent filenames or commands for them. Share module classes with `SkillBadge` through an explicit `className` prop to avoid requiring an extra stylesheet.
 
 ## 3. Lab 2 → Lab 3 Knowledge Mapping
 
-| Lab 2 concept | Classification | Actual transfer |
+| Inspected Lab 2 concept | Classification | Transfer to this exercise |
 | --- | --- | --- |
-| `createTextElement`, `createElement`, nested `props.children` | Conceptual only | JSX expresses the element/children tree; React creates its elements. No MiniReact VNodes are copied. |
-| Recursive `renderToDOM`, class and ARIA attributes | Semantics directly used; renderer conceptual only | Preserve semantic structure and accessible naming. React owns mounting and updates. |
-| `stateStore`, resetting `cursor`, setter closures | Conceptual only | Understand Hook ordering; actual React `useState` handles avatar failure. No custom state engine. |
-| `app.js` spread/map updates | Immutable-data principle directly used; Todo editing not required | Profile inputs are read-only. There is no profile-editing state. |
-| Derived `visibleTasks`, entity-ID lists | Directly used | Derive initials during render; map metrics/skills with stable keys. No redundant `useEffect` state. |
-| Root event delegation | Conceptual only | React's `onError` handles image failure. No handler registry, root listener setup, or MiniReact event IDs. |
-| Safe text rendering and accessibility | Directly used | JSX text interpolation, URL validation, semantic lists, meaningful alt, and named article. |
-| Todo forms, filters, async feed/retry | Not required | Leave the existing Lab 2 functionality untouched; it is outside this static-card exercise. |
-| Lab 2 tests | Verification lessons only | They do not establish correctness of the React card. Do not migrate MiniReact tests as application dependencies. |
+| Exercise 1: `createTextElement` returns `TEXT_ELEMENT` with `props.children`; `createElement` normalizes primitive/nested children | Conceptual only | Understand JSX as a tree of elements, props, and children. Let React handle element creation; do not construct MiniReact VNodes. |
+| Exercise 1: `renderToDOM` recursively mounts children and preserves ARIA/class attributes | DOM semantics directly used; mounting algorithm conceptual only | Choose meaningful HTML and preserve accessible names in JSX. React owns DOM updates and mounting through the real starter. |
+| Exercise 2: persistent `stateStore`, resetting `cursor`, setter closures in `useState` | Conceptual only | Explain stable Hook ordering. If fallback needs state, import the actual Hook from React and call it at component top level. No state engine is implemented. |
+| `app.js`: append with spread; update an item with `map` and object spread | Read-only/immutable data directly used; editing flow not required | Do not mutate profile props, metrics, or skills. No Todo-style state updates or editing controls are required. |
+| `app.js`: `visibleTasks` is derived with `filter` during render; list uses entity IDs | Directly used | Map metrics and skills from props; derive initials during render. Use metric property names and skill IDs as stable keys, not indexes or random values. |
+| `setupEventDelegation`: root listeners, handler Map, nearest matching ancestor | Conceptual only | Rely on React's event system for any fallback handler; do not transplant listener setup, handler IDs, or `this`-based form logic. |
+| Safe text nodes, blocked dangerous URL schemes, semantic headings and ARIA | Principles directly used | Render text through ordinary JSX interpolation; validate avatar protocol independently. Lab 2's scheme blocklist does not itself enforce HTTPS-only sources. |
+| Lab 2 test coverage for text safety, children, cursor slots, rerendering, delegation | Verification ideas directly used; runtime tests not required | Verify this card's output and failures with the real app and available tools; MiniReact tests cannot establish React card correctness. |
+| Todo forms, click filters, lifecycle loading/retry and asynchronous feeds | Not required | Do not add them. `useEffect`, forms, and general event handlers are not mandatory; only the required image-failure behavior may need a small handler. |
 
 ## 4. Work Breakdown Structure (WBS)
 
-Each task retains its objective, actual files, small steps, acceptance criteria, verification method, and dependencies. Checkmarks refer only to evidence described here or in section 7.
+Each task includes its own acceptance criteria so a beginner can finish and verify one slice at a time. File labels retain the observed/proposed distinction above.
 
-### EPIC 1: Establish actual architecture and data contract
+### EPIC 1: Inspect project and establish component/data contract
 
-#### TASK 1.1 — Resolve tooling and entry points
+#### TASK 1.1 — Resolve starter and tooling prerequisites
 
-**Objective:** Make the existing components runnable without duplicate setup.
-**Files:** `package.json`, `package-lock.json`, `vite.config.js`, `index.html`, `src/main.jsx`, this WBS.
-**Steps:** Inspect existing files/Git first; explain missing setup; add only React/React DOM plus Vite/React plugin; configure scripts and one entry point.
+**Objective:** Know where implementation will run before creating components.
 
-**Acceptance criteria:**
-- [x] Actual project paths, React 19 versions, CSS Module support, and Git root are recorded.
-- [x] Scripts come from the real manifest; absent test/lint scripts are disclosed.
-- [x] Original slide/source gaps remain explicit.
+**Files involved:** verified `PROJECT_RULES.md`, this `TASK_DECOMPOSITION.md`, and the Lab 2 references in section 2. Starter/configuration paths remain unresolved.
 
-**Verification:** filesystem inspection, `npm ls --depth=0`, `npm run`, production build. **Dependencies:** none.
-
-#### TASK 1.2 — Define profile inputs
-
-**Objective:** Use compatible inputs and distinguish sample data from assignment facts.
-**Files:** `src/App.jsx`, both component files, portrait asset.
-**Steps:** Inspect existing props; use the contract in section 2; preserve IDs, read-only inputs, name, and chosen photo.
+**Steps:**
+1. Review the findings above. Obtain or locate the intended Lab 3 starter and original slide when available.
+2. Inspect its actual README, package manifest, lockfile, scripts, React/React DOM versions, JSX setup, CSS Module handling, entry point, tests, and Git root.
+3. Record the confirmed paths and exact available commands here. Resolve React 19 or build-support gaps before feature implementation; do not silently scaffold a different app or install tools.
 
 **Acceptance criteria:**
-- [x] App supplies `name`, `role`, `avatarUrl`, metrics object, and skill-ID array.
-- [x] Heading IDs and initials ownership are clear.
-- [x] Fictional sample fields are explicitly identified.
+- [ ] Actual starter root, entry point, React 19 dependencies, CSS Module support, and Git root are recorded.
+- [ ] Available build/lint/test commands are copied from real configuration, or their absence is stated.
+- [ ] Proposed paths are confirmed or corrected; missing slide details remain explicitly unresolved.
 
-**Verification:** source inspection and live rendered content. **Dependencies:** TASK 1.1.
+**Verification:** filesystem/configuration inspection and Git root check. **Dependencies:** none. **Current status:** blocked for future implementation by missing starter; inspection findings above are already recorded.
 
-### EPIC 2: Reusable SkillBadge
+#### TASK 1.2 — Agree on the smallest profile data contract
 
-#### TASK 2.1 — Preserve focused skill presentation
+**Objective:** Give both components clear inputs without adding features.
 
-**Objective:** Display one skill without introducing interaction.
-**Files:** `src/components/SkillBadge.jsx`; DeveloperCard's list composition.
-**Steps:** Reuse the existing function component; interpolate the label; pass the CSS Module class from its parent.
+**Files involved:** this document; proposed component files; sample-data location to be verified in TASK 1.1.
 
-**Acceptance criteria:**
-- [x] The same component renders all skill labels.
-- [x] Badge is phrasing content inside a parent-owned `li`, without a button role or tab stop.
-- [x] Existing `className` supports scoped styling.
-
-**Verification:** source review, prior isolated React checks, live Skills list. **Dependencies:** TASK 1.2.
-
-### EPIC 3: Semantic DeveloperCard and real-app integration
-
-#### TASK 3.1 — Preserve named article and metrics
-
-**Objective:** Maintain meaningful structure with no div wrappers.
-**Files:** `src/components/DeveloperCard.jsx`.
-**Steps:** Keep article/header/h2; connect `aria-labelledby` with `useId`; map metric entries to keyed Fragment term/value pairs.
+**Steps:**
+1. Record the profile name, short role/subtitle, avatar URL, metrics object, and skills array needed by the supplied card content. Do not invent biography fields or metrics as slide facts.
+2. Define `DeveloperCard` inputs for those fields. Define each skill as a stable unique `id` plus visible `label`; define `SkillBadge` inputs as `label` and optional styling `className`.
+3. Define readable metric labels with string/number values, including numeric zero. Use unique metric property names as keys.
+4. Choose a heading ID strategy that remains unique for multiple card instances: caller-provided unique ID or React `useId`. Derive initials from the name, with a documented neutral fallback for an empty name.
+5. Keep avatar-failure state local if necessary; initials, metric entries, and skill labels remain derived values. Limit this static contract to fixed avatar props; dynamic avatar editing is outside scope.
 
 **Acceptance criteria:**
-- [x] DeveloperCard source and rendered card contain zero div elements.
-- [x] Article references its visible heading ID.
-- [x] Metrics use `Object.entries(metrics).map(...)` and stable property-name Fragment keys.
-- [x] Prior isolated checks cover zero-valued metrics and distinct IDs for multiple cards.
+- [ ] Props, data types, stable IDs, metric labels, initials behavior, and heading ID ownership are recorded.
+- [ ] Values are read-only; zero metrics remain visible and empty collections render without errors or invented placeholder features.
+- [ ] Exact profile content is confirmed from supplied material or clearly marked as provisional sample content.
 
-**Verification:** source inspection, live DOM/accessibility tree, earlier isolated React checks. **Dependencies:** TASK 1.2.
+**Verification:** trace one sample profile through both component contracts on paper. **Dependencies:** TASK 1.1.
 
-#### TASK 3.2 — Preserve skills composition
+### EPIC 2: Implement semantic SkillBadge
 
-**Objective:** Render reusable badges with stable identity.
-**Files:** both component files.
-**Steps:** Map the skills array; put `skill.id` on each mapped `li`; render SkillBadge inside.
+#### TASK 2.1 — Build a reusable display-only badge
 
-**Acceptance criteria:**
-- [x] Live structure is `ul` → `li` → badge.
-- [x] Keys use stable skill IDs, not indexes or random values.
-- [x] Earlier isolated checks cover duplicate labels, reorder, and empty arrays; live page has no key warning.
+**Objective:** Render one skill consistently wherever the card uses it.
 
-**Verification:** source, prior isolated tests, live browser console. **Dependencies:** TASK 2.1 and TASK 3.1.
+**Files involved:** proposed `src/components/SkillBadge.jsx`.
 
-#### TASK 3.3 — Preserve avatar safety and initials
-
-**Objective:** Show the selected portrait and recover from load failure.
-**Files:** DeveloperCard and `src/assets/huong-avatar.png`.
-**Steps:** Keep the trusted imported photo; enforce HTTPS for remote overrides; keep alt/dimensions and the existing state-driven error replacement.
+**Steps:**
+1. Create a function component using the confirmed module/export convention.
+2. Render the supplied label as JSX text in a small phrasing element such as `span`. Here it represents a short label, not a structural wrapper.
+3. Accept a `className` for later CSS Module integration. Let the card own the surrounding `li` and list keys.
+4. Avoid a button role, click handler, or tab stop because the badge has no action.
 
 **Acceptance criteria:**
-- [x] User-selected local photo loads in the actual app.
-- [x] Meaningful alt and explicit 96×128 dimensions are present.
-- [x] Earlier isolated React checks verify image-error → HB and no same-source error loop.
-- [x] Earlier checks reject missing/malformed/insecure remote sources.
-- [x] Force an actual local image response to HTTP 404 in the browser fixture: img is replaced by HB, accessible label remains, and fallback measures 96×128.
+- [ ] Two different labels can use the same component without duplicated badge markup in the card.
+- [ ] Labels render as text, including HTML-like input; the badge creates no interactive control.
+- [ ] List-item ownership and styling input match TASK 1.2.
 
-**Verification:** normal app image loaded/naturalWidth check; real-source browser fixture with intentional 404; two failed image requests across two separate fixture navigations, with no repeated error loop; HTTP and malformed override fixtures render initials without an img. **Dependencies:** TASK 3.2.
+**Verification:** source review and rendering in the actual application when integrated in TASK 3.2. **Dependencies:** TASK 1.2.
 
-#### TASK 3.4 — Integrate App and mount it
+### EPIC 3: Implement semantic DeveloperCard and metrics
 
-**Objective:** Display the completed card through the actual application.
-**Files:** `index.html`, `src/main.jsx`, `src/App.jsx`, `vite.config.js`, manifest/lockfile.
-**Steps:** Add the missing single HTML host; mount App using `createRoot` and StrictMode; pass the existing sample contract; start the server and inspect the rendered page.
+#### TASK 3.1 — Build the named article and metric pairs
 
-**Acceptance criteria:**
-- [x] One entry-point chain renders App and DeveloperCard; no alternate entry or routing layer.
-- [x] App uses a semantic main and h1; DeveloperCard keeps its h2.
-- [x] JSX, CSS Modules, and imported portrait work through Vite.
-- [x] Production build succeeds and the live browser shows the intended profile.
+**Objective:** Express the profile as meaningful HTML without `div` elements.
 
-**Verification:** `npm run build`, `npm run dev`, actual page/AX/DOM inspection. **Dependencies:** TASK 1.1, TASK 3.3, and existing P2 styling.
+**Files involved:** proposed `src/components/DeveloperCard.jsx`.
 
-### EPIC 4: Mobile-first scoped styling
-
-#### TASK 4.1 — Keep the mobile baseline
-
-**Objective:** Make default CSS support the narrow layout.
-**Files:** DeveloperCard and `DeveloperCard.module.css`.
-**Steps:** Reuse scoped classes/tokens; stack the header/metrics by default; wrap badges and long strings; keep fluid widths and border-box sizing.
+**Steps:**
+1. Render an `article`, a `header`, and a heading at the level appropriate to the host page. Use `hgroup` only if grouping the heading and subtitle helps express their relationship.
+2. Point `aria-labelledby` at the heading's unique ID; keep the same ID for that mounted instance.
+3. Render `Object.entries(metrics).map(...)` inside a `dl`. Return an explicitly imported React `Fragment` keyed by the metric property name, containing a `dt` followed by its `dd`.
+4. Use ordinary JSX text for names, labels, and values. Avoid raw HTML insertion and extra wrappers; the short Fragment syntax cannot accept a key.
 
 **Acceptance criteria:**
-- [x] Default rules provide the mobile layout without a media query.
-- [x] Card/badge styles come through the CSS Module, without inline style objects.
-- [x] Portrait is proportional; fallback has the same 3:4 intended footprint.
+- [ ] Component source contains zero opening/closing `div` tags, and rendered card descendants contain none.
+- [ ] Article accessible name resolves to its visible heading; two instances have distinct heading IDs.
+- [ ] Every metric is a correct `dt`/`dd` pair from `Object.entries(metrics).map(...)`, with a stable Fragment key; numeric zero renders.
 
-**Verification:** source, real build, live styles at 375px. **Dependencies:** TASK 3.1–3.3.
+**Verification:** source inspection from section 7, rendered Elements panel, accessibility tree, and normal/empty/zero metric fixtures. **Dependencies:** TASK 1.2.
 
-#### TASK 4.2 — Verify mobile overflow
+#### TASK 3.2 — Compose the skills and mount through the real app
 
-**Objective:** Check the actual document at 375px.
-**Files:** CSS Module; application host only if a measured issue needs correction.
-**Steps:** Use a 375×812 viewport; inspect the entire document and image; compare scroll/client widths; avoid hiding overflow.
+**Objective:** Show the complete data-driven card through the starter's real entry point.
 
-**Acceptance criteria:**
-- [x] Normal integrated profile has scrollWidth = clientWidth = 375.
-- [x] Profile, metrics, image, and skills are visible with wrapping and no clipped normal content.
-- [x] Repeat in-browser with a 285-character name, 360-character skill labels, a 300-character metric value, zero metric, and forced avatar failure. No horizontal overflow at a 375px viewport.
+**Files involved:** proposed component files; actual host/sample-data files identified in TASK 1.1.
 
-**Verification:** browser viewport override, DOM geometry, mobile screenshot. **Dependencies:** TASK 3.4 and TASK 4.1.
-
-#### TASK 4.3 — Verify laptop and mobile regression
-
-**Objective:** Enhance width without changing DOM or breaking mobile.
-**Files:** CSS Module.
-**Steps:** Keep the `min-width: 40rem` enhancement; check both sides of the breakpoint and laptop width; return to 375px.
+**Steps:**
+1. Render a `ul` containing one `li` per skill. Put `key={skill.id}` on the mapped `li`, and render `SkillBadge` inside it.
+2. Connect the card to the confirmed host page using the contracted profile data. Reuse the starter's React mounting setup; do not use MiniReact or legacy `ReactDOM.render`.
+3. Check ordinary data, an empty skill array, duplicate visible labels with different IDs, and two card instances using temporary fixtures or existing test facilities.
 
 **Acceptance criteria:**
-- [x] Header/metrics change to the intended columns at wider sizes.
-- [x] No normal-profile overflow at 639, 640, 768, or 1366px.
-- [x] Final return to 375px still has equal scroll/client widths.
+- [ ] The real app displays the card and reusable badges with valid `ul` → `li` structure.
+- [ ] Keys use stable unique IDs and are not generated during render; duplicate labels do not collide.
+- [ ] No missing-key, duplicate-key, or mounting warnings appear; empty arrays do not crash.
 
-**Verification:** actual browser measurements in section 7. **Dependencies:** TASK 4.2's normal-profile check.
-**History note:** mobile CSS was authored and source-checked before laptop rules. Real-browser verification became possible only after integration; do not claim that browser testing happened before P2 implementation.
+**Verification:** real-entry-point rendering, source review, and Console inspection. **Dependencies:** TASK 2.1 and TASK 3.1.
 
-### EPIC 5: Accessibility, security, and quality verification
+#### TASK 3.3 — Add HTTPS avatar handling and initials fallback
 
-#### TASK 5.1 — Audit relevant card behavior
+**Objective:** Keep identity understandable when the avatar fails.
 
-**Objective:** Verify safe text, semantics, accessible names, and contrast.
-**Files:** App, component files, CSS Module, portrait.
-**Steps:** Inspect AX/DOM and Console; use prior isolated negative cases; measure text colors; check applicable browser behaviors without inventing interactions.
+**Files involved:** proposed `src/components/DeveloperCard.jsx`; confirmed sample-data location.
 
-**Acceptance criteria:**
-- [x] Live heading, named card, image, description list, and skills list are understandable.
-- [x] Earlier isolated checks verify HTML-like text stays text.
-- [x] Actual computed production-preview colors meet text contrast thresholds: 17.85:1 heading, 7.58:1 role text, 7.15:1 badge text/background.
-- [x] The static card introduces no interactive elements or tabindex stops; standalone SkillBadge also remains non-interactive.
-- [ ] Complete browser zoom and any broader assistive-technology/WCAG review; no blanket WCAG compliance claim.
-
-**Verification:** live AX/DOM, safe-text browser fixture, computed-color contrast calculations, and focusable-element inspection. Remaining zoom/full-accessibility audit is pending. **Dependencies:** TASK 4.3.
-
-#### TASK 5.2 — Run actual configured checks
-
-**Objective:** Record reproducible results without inventing test scripts.
-**Files:** manifest/lockfile, app/configuration, WBS.
-**Steps:** Run available scripts; review browser Console and Git diff; record missing tooling.
+**Steps:**
+1. Inspect the actual avatar literal and incoming URL. Accept only an absolute URL whose parsed protocol is `https:`; missing, malformed, or insecure values select initials without issuing that image request.
+2. Give the successful `img` meaningful alt text such as a portrait description including the profile name, plus explicit positive `width` and `height` attributes.
+3. On load failure, use React's `onError` and minimal local state if needed to replace the failed image with visible initials. Do not repeatedly assign another failing URL or manually register DOM listeners.
+4. Derive initials during render. Give the fallback an understandable accessible identity without repeating the person's name unnecessarily; document whether nearby heading text already provides it.
 
 **Acceptance criteria:**
-- [x] `npm run build` passes with bundled HTML/JS/CSS/portrait.
-- [x] `npm run dev` starts the real app at the configured URL.
-- [x] `npm ls --depth=0` resolves expected project dependencies.
-- [x] Browser warning/error log is empty during ordinary rendering/resizing.
-- [x] No test/lint script exists; these checks are explicitly not run.
-- [x] `npm run preview` serves the production build at port 4173; the card and hashed portrait load, CSS Modules apply, and document widths are both 375.
+- [ ] Actual avatar sources are HTTPS-only; insecure/malformed values render initials without being requested.
+- [ ] Successful image has meaningful alt text and explicit dimensions.
+- [ ] Blocking the HTTPS image request produces readable initials, no broken-image icon, and no retry loop.
+- [ ] Fallback does not require `useEffect`, copied MiniReact state code, or unrelated interactions.
 
-**Verification:** section 7 command/browser results. **Dependencies:** TASK 3.4.
+**Verification:** inspect source and `img` attributes; use DevTools request blocking and invalid URL fixtures; inspect fallback accessible output. **Dependencies:** TASK 3.2.
 
-### EPIC 6: Commit review and final audit
+### EPIC 4: Implement CSS Module and responsive layout
 
-#### TASK 6.1 — Verify existing P1 checkpoint
+#### TASK 4.1 — Add scoped presentation after semantic checkpoint
 
-**Objective:** Preserve and inspect the required semantic commit.
-**Files:** existing P1 component/asset changes.
-**Steps:** Inspect existing history; do not duplicate, amend, or recreate the commit.
+**Objective:** Style the existing semantics through the required module.
 
-**Acceptance criteria:**
-- [x] Existing `d21a7ac` has exact message `feat(ex1): implement semantic DeveloperCard and SkillBadge`.
-- [x] Current work reuses its components and user-selected photo.
+**Files involved:** proposed `src/components/DeveloperCard.module.css` and both proposed component files.
 
-**Verification:** `git log` and source inspection. **Dependencies:** existing P1.
-**Historical limitation:** the app shell was absent at that checkpoint; runnable integration was added later.
-
-#### TASK 6.2 — Verify P2 and review integration separately
-
-**Objective:** Preserve P2 history and prepare an accurate review of new setup.
-**Files:** integration/configuration files and WBS only.
-**Steps:** Confirm the existing P2 subject; inspect only the new integration diff; leave staging/committing to the user.
+**Steps:**
+1. After TASK 6.1, create/import the module and apply its classes to the existing elements. Pass the badge class through `SkillBadge`'s styling prop.
+2. Define a small set of card-scoped custom properties for repeated colors, spacing, and shape values. Use classes for variants or fixed avatar/fallback dimensions.
+3. Set readable typography, metric alignment, and skill wrapping without introducing structural wrappers or inline style objects.
 
 **Acceptance criteria:**
-- [x] Existing `2350c9a` has exact message `style(ex1): add responsive 375px CSS module`.
-- [x] Integration reuses P1/P2 without rewriting those component/style files.
-- [ ] User reviews and, if desired, stages the integration files listed in section 9.
+- [ ] Computed styles come from the imported CSS Module and card/badge classes.
+- [ ] Neither component uses inline style objects; custom properties live in CSS.
+- [ ] Semantic markup, keys, image dimensions, and fallback behavior still satisfy EPIC 3.
 
-**Verification:** Git history/status/diff. **Dependencies:** TASK 5.2.
+**Verification:** source imports and DevTools Styles/Computed inspection. **Dependencies:** TASK 6.1.
+
+#### TASK 4.2 — Fit and verify the layout at 375px
+
+**Objective:** Keep all content readable within a narrow viewport.
+
+**Files involved:** proposed `src/components/DeveloperCard.module.css`; verified host styles/viewport configuration only if an actual integration issue requires a minimal correction.
+
+**Steps:**
+1. Use border-box sizing, fluid widths bounded by the parent, flexible layout, and wrapping skills. Avoid fixed minimum widths larger than available space.
+2. Allow long names, skill labels, and metric values to wrap; use appropriate `min-width` and overflow wrapping on flex/grid children.
+3. Preserve the image/fallback footprint. Confirm the actual HTML entry point has a responsive viewport declaration.
+4. Emulate a 375 CSS-pixel viewport and inspect the entire document, not only the card. Fix the source of overflow rather than hiding it with page-wide `overflow-x: hidden`.
+
+**Acceptance criteria:**
+- [ ] At 375px, `document.documentElement.scrollWidth <= document.documentElement.clientWidth` is `true`.
+- [ ] Standard content, long labels, and the failed-image state remain readable without clipping or horizontal scrolling.
+- [ ] A wider desktop viewport also remains readable; the card does not force host-page overflow.
+
+**Verification:** device emulation, Console measurement, visual inspection at 375px and a recorded wider width. **Dependencies:** TASK 4.1.
+
+### EPIC 5: Security, accessibility, and quality verification
+
+#### TASK 5.1 — Audit semantics, names, contrast, and safe text
+
+**Objective:** Verify the finished card's applicable quality requirements.
+
+**Files involved:** proposed component/module files and confirmed host/sample-data files; no new tooling assumed.
+
+**Steps:**
+1. Follow the source, DOM, accessibility-tree, avatar, and contrast checks in sections 7–8.
+2. Check names, heading order, description-list relationships, skill list structure, and image/fallback output. Do not add ARIA roles that duplicate native semantics unnecessarily.
+3. Measure actual foreground/background pairs for text, badges, and initials. Check keyboard navigation only for real host interactions; do not add focusable static card content.
+4. Temporarily supply HTML-like text as a profile name/skill label. Confirm it appears literally and creates no injected elements; restore the intended profile afterward.
+
+**Acceptance criteria:**
+- [ ] Required semantic/name relationships and safe text output are evidenced.
+- [ ] Applicable text contrast meets 4.5:1 for normal text or 3:1 for qualifying large text; relevant non-text UI indicators meet 3:1 where applicable.
+- [ ] No unintended focus stops exist; any existing affected interaction remains keyboard-operable with visible focus.
+- [ ] Findings are fixed or recorded as unresolved; no blanket WCAG compliance claim rests on an automated score.
+
+**Verification:** manual inspection, available contrast measurement, and the evidence checklist. **Dependencies:** TASK 4.2.
+
+#### TASK 5.2 — Run available project checks and record outcomes
+
+**Objective:** Distinguish verified behavior from planned verification.
+
+**Files involved:** actual package/configuration/test paths found in TASK 1.1; proposed component/module files; this document for results.
+
+**Steps:**
+1. Run only the real starter's available build, lint, and relevant test commands. Record exact commands, outcomes, and failures.
+2. If an existing component test setup exists, cover card naming, metric pairs including zero, skills with IDs, and failed-avatar behavior using its conventions.
+3. If no such setup exists, perform the manual checks and mark automated checks unavailable. Do not install a test framework or create pretend test paths for this assignment.
+4. Reload the real application and review Console messages after normal rendering and intentional avatar failure. An intentionally blocked image may produce a network error; distinguish that expected diagnostic from React warnings or application failures.
+
+**Acceptance criteria:**
+- [ ] Every relevant available command has a recorded result; unavailable checks explain why.
+- [ ] No unexplained application error or React warning remains.
+- [ ] Final 375px, semantic, avatar, and CSS Module checks have recorded evidence, not inferred success.
+
+**Verification:** command output and actual browser evidence. **Dependencies:** TASK 5.1.
+
+### EPIC 6: Git commits and final audit
+
+#### TASK 6.1 — Record the semantic component checkpoint
+
+**Objective:** Create the first future atomic commit before styling begins.
+
+**Files involved:** proposed component files and verified host/sample-data files; exact staging set resolved after TASK 1.1.
+
+**Steps:**
+1. In the confirmed Git repository, inspect status/diff and verify TASKS 2.1–3.3. Keep this checkpoint renderable without importing a nonexistent CSS Module.
+2. Stage only semantic component implementation, required host/data integration, and directly relevant existing-test changes, if any. Review the staged diff.
+3. Use exactly `feat(ex1): implement semantic DeveloperCard and SkillBadge`.
+
+**Acceptance criteria:**
+- [ ] Commit contains working semantic structure, data rendering, keys, and safe avatar/fallback behavior.
+- [ ] It contains no responsive styling work, unresolved imports, or unrelated changes.
+- [ ] The actual recorded commit message matches the required first message.
+
+**Verification:** staged diff, real-entry-point check, then commit inspection. **Dependencies:** TASK 3.3 and verified Git prerequisites from TASK 1.1. **Timing:** before EPIC 4, despite its placement in this Git epic.
+
+#### TASK 6.2 — Record responsive styling and audit final delivery
+
+**Objective:** Create the second future atomic commit and confirm the exercise is ready.
+
+**Files involved:** proposed module and the minimal class/import changes in component files; only verified host corrections and related verification documentation if applicable.
+
+**Steps:**
+1. Confirm EPIC 5 results and section 10. Review staged changes against the semantic checkpoint.
+2. Stage module styling, its imports/class wiring, and only responsive host fixes actually needed. Remove temporary fixtures/debugging artifacts from the intended diff.
+3. Use exactly `style(ex1): add responsive 375px CSS module`.
+4. Inspect both commits and the working tree. Record remaining unrelated changes without staging them or discarding them.
+
+**Acceptance criteria:**
+- [ ] Second commit contains the scoped responsive presentation and required wiring, with the exact second message.
+- [ ] Both commits are independently coherent and ordered semantic implementation → responsive styling.
+- [ ] Final diff includes no copied runtime, secrets, dependencies added without agreement, or unrelated files.
+- [ ] Evidence and unchecked limitations accurately reflect the final version.
+
+**Verification:** `git status --short`, staged diff, `git show --stat`, and `git log -2 --format=%s` in the confirmed repository. **Dependencies:** TASK 5.2 and TASK 6.1.
 
 ## 5. Task Dependencies and Suggested Implementation Order
 
-Original feature sequence: contract → semantic components → avatar/keys → mobile CSS → laptop enhancement → quality checks.
+Execute in this order:
 
-Actual integration continuation: inspect committed P1/P2 → resolve missing setup in TASK 1.1 → TASK 3.4 → live TASKS 4.2/4.3 → TASK 5.2 → remaining accessibility/edge-case checks.
+`1.1 → 1.2 → 2.1 → 3.1 → 3.2 → 3.3 → 6.1 → 4.1 → 4.2 → 5.1 → 5.2 → 6.2`
 
-Both layout modes use the same card and semantic DOM. Do not rewrite historical commits to make the original plan appear fully verified earlier than it was.
+TASKS 2.1 and 3.1 can be developed independently after the contract; both must finish before integration. Resolve the missing starter before implementation. The first commit is deliberately placed before CSS work so neither commit depends on unstaged styling files. Defer all commit execution until the future implementation work is authorized; this documentation request creates none.
 
 ## 6. Acceptance Criteria for Every Task
 
-Every task above contains its acceptance gate. Image failure, long-content fixtures, computed-color contrast, static-card focus inspection, and production preview have now been verified. Browser zoom, a full WCAG/assistive-technology audit, and user review/staging remain pending. No external HTTPS avatar was fetched: the user chose a local portrait; remote HTTPS enforcement is supported by source review and rejection fixtures rather than a claim of verified external hosting.
+The checkboxes embedded in each task are that task's acceptance gate. Use this coverage index during review:
 
-Do not add tests or a lint framework solely to turn an unavailable command into a passing result.
+| Task | Completion evidence |
+| --- | --- |
+| 1.1 | Confirmed starter, React 19/tooling, paths, scripts, and Git root |
+| 1.2 | Profile/badge contract, IDs, zero/empty-data and initials decisions |
+| 2.1 | Reusable non-interactive badge and safe text output |
+| 3.1 | Zero div tags, named article, keyed Fragment metric pairs |
+| 3.2 | Real-app integration, semantic skills list, stable IDs, no key warnings |
+| 3.3 | HTTPS-only avatar, alt/dimensions, successful initials fallback |
+| 4.1 | Loaded CSS Module, scoped classes/tokens, no inline styles |
+| 4.2 | Recorded 375px overflow measurement and readable content |
+| 5.1 | Semantic/accessibility, measured contrast, safe-text evidence |
+| 5.2 | Actual configured check results and browser outcomes |
+| 6.1 | First exact-message commit with reviewed semantic staging |
+| 6.2 | Second exact-message commit, reviewed history/diff and final audit |
+
+Only check a criterion after its verification method has been executed. If a prerequisite is missing, report **not run — prerequisite missing**, not passed.
 
 ## 7. Testing and Verification Plan
 
-### Commands actually executed during integration
+**Current status:** repository/archive inspection completed; implementation, application tests, builds, browser checks, contrast measurements, and commits **not run**. There is no Lab 3 app to execute. Historical Lab 2 test assertions were read, not executed or certified.
 
-| Command | Result |
-| --- | --- |
-| `node --version`, `npm --version` | v26.8.2 / 11.19.1 |
-| `npm install --save-exact react@19 react-dom@19` | Initial sandbox cache-permission error; approved retry succeeded |
-| `npm install --save-dev --save-exact vite @vitejs/plugin-react` | Succeeded; install reported 0 vulnerabilities |
-| `npm ls --depth=0` | React/React DOM 19.3.1, Vite 8.3.5, React plugin 6.1.2 |
-| `npm run` | Lists only dev, build, preview |
-| `npm run build` | Passed; output under ignored `dist/` includes HTML, JS, CSS and portrait |
-| `npm run dev` | Passed; loopback server started at `http://127.0.0.1:5173/` |
-| `git status --short`, `git log`, `git diff --check` | Used for actual repository/history/change review |
+### Source inspection after implementation
 
-### Actual live-browser evidence
+Run these only after TASK 1.1 confirms the proposed paths. They are planned commands, not current results:
 
-Page: `http://127.0.0.1:5173/`, ChatGPT in-app browser. The page exposes the h1, named profile card/h2, meaningful avatar, metrics, and Skills list. The image is loaded at 96×128. Card descendant div count is 0; heading ID matches article naming. Console warning/error capture returned an empty list.
+```sh
+rg -n -i '<\s*/?\s*div\b' src/components/DeveloperCard.jsx
+rg -n 'Object\.entries|Fragment|aria-labelledby|key=' src/components/DeveloperCard.jsx
+rg -n 'style\s*=|\.module\.css|className' src/components/DeveloperCard.jsx src/components/SkillBadge.jsx
+```
 
-| Viewport width | document scrollWidth | document clientWidth | Overflow check |
+- For the first command, zero matches is expected; ripgrep exit code 1 means no matches, while a missing-file/error result does not prove compliance. Review source manually for unusual multiline markup and check rendered descendants too.
+- For metrics/keys, inspect the complete mapping callbacks: search matches alone do not establish correct placement. Verify Fragment keys use metric property names and mapped skill list items use `skill.id`.
+- Inspect the module import and class references; inspect all component style usage manually. There must be no inline style objects, even if a search misses an unusual spelling.
+- Locate the actual avatar value in the confirmed sample data and follow it to `img.src`. Inspect avatar literals specifically, then verify the parsed protocol and rendered `currentSrc`/Network request are HTTPS. Do not treat unrelated `http://` text in documentation or development tooling as an avatar failure.
+- Review ordinary JSX interpolation and the absence of unsafe HTML insertion or executable string handlers. Do not copy Lab 2 URL filtering as a substitute for HTTPS enforcement.
+
+### Planned scenario matrix
+
+| Scenario | Expected result | Method | Status |
 | --- | --- | --- | --- |
-| 375 | 375 | 375 | true |
-| 639 | 639 | 639 | true |
-| 640 | 640 | 640 | true |
-| 768 | 768 | 768 | true |
-| 1366 | 1366 | 1366 | true |
-| Return to 375 | 375 | 375 | true |
+| Normal profile | Correct name/subtitle, all metric pairs and skills, successful avatar | Real app, DOM and accessibility inspection | Not run |
+| Metric value zero; empty collections | Zero remains visible; no missing items from truthiness mistakes; no crash | Temporary fixtures or existing test setup | Not run |
+| Reordered skills; duplicate labels with distinct IDs | Stable ID keys; no duplicate/missing-key warnings | Source review and real rerender via available fixtures | Not run |
+| Two cards | Unique heading IDs and correct article names | DOM and accessibility inspection | Not run |
+| Failed HTTPS avatar | Visible initials, usable accessible identity, no retry loop | Block its request in DevTools and reload | Not run |
+| Missing/malformed/non-HTTPS avatar | Initials; rejected URL not requested | Temporary data fixtures plus Network panel | Not run |
+| Long name/skill/value at 375px | Readable wrapping and no horizontal overflow | Device toolbar plus Console measurement | Not run |
+| HTML-like profile/skill text | Literal text, no injected element | Fixture, Elements panel, available component tests | Not run |
+| Final visual colors | Applicable measured contrast thresholds satisfied | Contrast tool using computed color pairs | Not run |
+| Project build/lint/tests | Actual configured checks succeed or failures are recorded | Commands discovered in TASK 1.1 | Not run; no Lab 3 configuration |
 
-Check expression: `document.documentElement.scrollWidth <= document.documentElement.clientWidth`. The mobile check used height 812; laptop used height 900. Viewport overrides were reset after verification.
-
-Mobile screenshot: `C:/Users/buing/.codex/visualizations/2026/10/24/01a16e86-bada-7050-9034-5fdf33b88a92/developer-profile-375.png` (outside the Git source tree).
-
-Earlier isolated React/jsdom verification covered unique IDs, zero/empty metrics, immutable arrays, duplicate labels with distinct IDs, reordered skills, safe text, URL rejection, and image-error fallback. Those are historical isolated results, not newly executed project test scripts.
-
-**Still not verified:** project test/lint commands (none configured), browser zoom, complete WCAG/assistive-technology audit, and an actual external HTTPS avatar request. No claim of full compliance or all-edge-case completion.
-
-### QA audit — 2026-10-25
-
-Production components, CSS, entry points, dependencies, and the selected photo were preserved. The audit used the real app on port 5173 and the production preview on port 4173. Additional browser fixtures were served by an in-memory Vite plugin on port 5174, importing the actual DeveloperCard, SkillBadge, CSS Module, and portrait. The temporary harness lived outside the repository and is removed after testing; no test pages, routes, dependencies, or fixture data were added to the product.
-
-| Requested check | Status | Evidence |
-| --- | --- | --- |
-| 1. Zero div tags | PASS | Source regex matches no opening/closing div tags; normal and production-preview article descendant div count is 0. |
-| 2. Semantics and naming | PASS | h1 → h2 hierarchy; article/header, alternating dt/dd children, ul/li; article heading reference matches h2 ID. Two-card fixture has distinct `_r_0_` and `_r_1_` IDs with correct references. |
-| 3. Data rendering and keys | PASS | Source uses Object.entries(metrics).map, Fragment key=label, and li key=skill.id. Normal values, numeric zero, duplicate-label/distinct-ID skills, and empty arrays render without React key warnings. |
-| 4. Avatar | PASS under agreed local-photo exception | Local image loads with meaningful alt and 96×128 dimensions. Intentional network 404 produces HB at 96×128 without a retry loop. HTTP/malformed remote overrides produce no img. No external HTTPS hosting/request is claimed. |
-| 5. Reusable badge and CSS Modules | PASS | Separate badge rendered independently with the supplied className; card badges receive generated module classes and computed styles. Module custom properties are intentionally supplied by the card context. No inline presentation styles. |
-| 6. 375px overflow | PASS | Normal dev app and production preview: scrollWidth=clientWidth=375. Failed-image and empty-data fixtures: 375=375. Long-content fixture: 360=360 at innerWidth 375; the 15px difference is a vertical scrollbar, not horizontal overflow. |
-| 7. Build/run | PASS | npm run build succeeds; existing dev server responds HTTP 200; npm run preview starts and the production page renders with loaded hashed assets. |
-| 8. Change boundaries | PASS | No production file changed during QA; no extra product requirement or dependency added. Existing integration files remain untracked; pre-existing ../Exercises.zip is untouched. Only this WBS is edited by the audit. |
-
-Commands/checks actually executed in this audit:
-
-- `npm run build` — PASS, Vite 8.3.5, 19 modules transformed.
-- `npm run` and `npm ls --depth=0` — PASS; configured scripts/versions unchanged; no test/lint script exists.
-- `curl.exe -I http://127.0.0.1:5173/` — PASS, HTTP 200 from the existing dev process; a duplicate dev server was not started.
-- `npm run preview` — PASS at `http://127.0.0.1:4173/`; live DOM/AX, image loading, CSS, computed contrast, and 375px layout checked.
-- Temporary harness: `node C:/Users/buing/.codex/visualizations/2026/10/24/01a16e86-bada-7050-9034-5fdf33b88a92/qa-audit.mjs` — real-source browser fixtures for image failure, long/safe text, empty data, HTTP/malformed URLs, and multiple cards/standalone badge.
-- `curl.exe -s http://127.0.0.1:5174/__qa_stats.json` — two intentional image failures for two failure-page navigations; counter remains 2 after other fixture checks, demonstrating no repeated request loop.
-- In-memory Node assertions — PASS for div/key/URL-guard/className invariants; SHA-256 baseline confirms every reviewed production/configuration/asset file is unchanged.
-- `git status --short`, diff inspection, and `git diff --check` — audit change-boundary/whitespace review. No staging or commit performed.
-
-Normal browser warning/error captures returned no messages. Intentional 404 responses are expected test network failures and are not application regressions. Long fixture contains an HTML-like skill string; it stays text and creates no injected img/script element.
-
-Fallback screenshot (outside Git): `C:/Users/buing/.codex/visualizations/2026/10/24/01a16e86-bada-7050-9034-5fdf33b88a92/qa-avatar-fallback-375.png`. Browser viewport overrides are reset after testing. Temporary QA and preview servers are stopped; the original dev server is retained.
-
-### Repeatable checks
-
-- Inspect `src/components/DeveloperCard.jsx` for zero opening/closing div tags; missing files or search errors do not prove compliance.
-- Review full metric/skill map callbacks, not just key search matches.
-- Follow actual avatar source to the trusted local import or HTTPS remote override; unrelated HTTP text and loopback URLs are not external-avatar violations.
-- Inspect CSS Module imports/classes, rendered DOM, and computed responsive rules.
-- Recheck normal and edge fixtures at 375px after future desktop changes; never hide page overflow to pass the measurement.
+Use existing test infrastructure if present; do not translate MiniReact runtime tests into required React implementation tasks. Automated checks complement manual semantics, image failure, and responsive checks.
 
 ## 8. Browser/DevTools Evidence Checklist
 
-- [x] Normal profile visible through the real entry point.
-- [x] Article naming matches its h2; no div descendants.
-- [x] AX view exposes profile heading, image, metrics, and Skills list.
-- [x] Uploaded image loaded with meaningful alt and explicit dimensions.
-- [x] 375px normal-profile screenshot and equal document widths.
-- [x] Breakpoint/laptop checks and final 375px regression.
-- [x] CSS Module is loaded; no inline presentation styling.
-- [x] No browser warning/error messages during normal rendering/resizing.
-- [x] Forced image error and long-content browser fixtures at an actual 375px viewport.
-- [x] Empty data, zero metrics, safe text, duplicate labels, URL rejection, distinct card IDs, and standalone badge fixtures.
-- [x] Production preview, computed text contrast, and absence of static-card focus stops.
-- [ ] Browser zoom and remaining full accessibility/assistive-technology checks.
+For each future check, record the browser/version, page route, viewport, relevant fixture, result, and evidence reference. Evidence may be captured through the review workflow; this documentation-only task creates no screenshots or extra files.
+
+- [ ] **Elements:** card is an `article` containing its `header`; heading ID matches `aria-labelledby`; no descendant `div`; metrics are `dl` → `dt`/`dd`; skills are `ul` → `li`.
+- [ ] **Accessibility tree:** article has the profile heading as its accessible name; heading, term/value content, list/items, and avatar/fallback identity are understandable. Inspect corresponding DOM as well: browsers may flatten `header`/`hgroup` or expose them generically rather than as literal tag-named accessibility nodes.
+- [ ] **Avatar:** successful `img` exposes meaningful alt, width, and height; source and request use HTTPS. Request-blocked reload shows initials, reserves the styled footprint, and avoids repeated failed requests.
+- [ ] **375px viewport:** enable Chrome DevTools device toolbar in responsive mode, set width to 375 CSS pixels, record height, and reload. Capture the whole card with normal and long-content/fallback fixtures.
+- [ ] **Overflow:** in that page's Console, evaluate `document.documentElement.scrollWidth <= document.documentElement.clientWidth`; record both widths and the Boolean result. Expected: `true`.
+- [ ] **CSS:** Styles/Computed points to `DeveloperCard.module.css` through the bundler's module output; scoped classes are applied to card and badges; no inline style dependence exists.
+- [ ] **Console:** no React key, invalid-nesting, or other unexplained warnings after normal rendering/reload and available rerender checks. Label expected request-blocking diagnostics separately.
+- [ ] **Contrast:** record computed foreground/background colors and measured ratio for body text, metadata, badge text, and initials. Check 4.5:1 normal text / 3:1 qualifying large text; assess applicable non-text indicators separately.
+- [ ] **Keyboard/zoom:** static content adds no tab stops; existing affected controls retain visible focus and keyboard use. Check readable wrapping under browser zoom as a supporting accessibility check, recording the zoom used.
+- [ ] **Wider viewport:** record the selected width and confirm the responsive styles remain readable.
 
 ## 9. Git Commit Plan
 
-The two required commits already exist, in order:
+**No commits were created.** Current directory has no Git repository. Resolve its intended starter/repository before attempting these future steps; do not initialize a separate repository or make a setup commit merely to satisfy this plan.
 
-1. `d21a7ac` — `feat(ex1): implement semantic DeveloperCard and SkillBadge`
-2. `2350c9a` — `style(ex1): add responsive 375px CSS module`
+| Checkpoint | Exact message | Files to stage after confirming paths |
+| --- | --- | --- |
+| TASK 6.1 | `feat(ex1): implement semantic DeveloperCard and SkillBadge` | Proposed `src/components/DeveloperCard.jsx`, `src/components/SkillBadge.jsx`; only actual host/sample-data changes needed to display the card and directly relevant tests if already supported. No CSS Module import until that module exists. |
+| TASK 6.2 | `style(ex1): add responsive 375px CSS module` | Proposed `src/components/DeveloperCard.module.css`; component hunks adding module imports/classes and badge class wiring; minimal verified host responsive corrections if needed. Include related evidence/documentation updates only after explicit diff review. |
 
-No new commit, push, staging, history rewrite, or repository initialization is part of this integration.
-
-Exact integration files to review before any future explicit staging:
-
-- `index.html`
-- `package.json`
-- `package-lock.json`
-- `vite.config.js`
-- `src/main.jsx`
-- `src/App.jsx`
-- `TASK_DECOMPOSITION.md`
-
-Existing P1/P2 source files and the portrait are reused, not restaged as new integration work. Do not stage `node_modules/`, `dist/`, Lab 2 references, or unrelated user edits. Inspect the staged diff if the user later chooses to stage; do not use blanket `git add .`.
-
-QA boundary: the audit modifies only `TASK_DECOMPOSITION.md`. The existing untracked integration files and the user-created `../Exercises.zip` are left in their original state; they are not QA changes or automatically staged deliverables.
+Use explicit file paths and `git add -p` for tracked files mixing relevant and unrelated changes. Inspect `git diff --cached` before each commit; avoid blanket `git add .`. Do not stage Lab 2 references, archives, dependencies, generated output, secrets, or unrelated work. Treat this WBS as planning documentation, not automatic content for either implementation commit. After each checkpoint, verify its tree is runnable; after the second, inspect both exact subjects and confirm all intended work is committed without requiring unrelated user changes to be removed.
 
 ## 10. Final Definition of Done
 
-- [x] Local React 19 manifest/lockfile, single entry point, and CSS Module-capable configuration exist.
-- [x] App supplies the actual prop contract and preserves the user's chosen photo.
-- [x] Semantic structure, article naming, metric/skill keys, zero div tags, and scoped styling remain intact.
-- [x] Production build passes; real dev application displays the profile.
-- [x] Normal profile has no horizontal overflow across tested mobile/breakpoint/laptop widths; long-content/fallback/empty fixtures also fit at 375px.
-- [x] Real image-error fallback, production preview, computed text contrast, and multiple-card naming are verified in a browser.
-- [x] Existing P1/P2 commit messages are verified; current integration is uncommitted.
-- [ ] Finish browser zoom and the remaining full accessibility/assistive-technology review before claiming comprehensive WCAG compliance. No confirmed assignment-scope code defect remains from this audit.
+This checklist defines completion of the **future exercise implementation**, not a claim that implementation is complete today.
 
-**How to run:** from the Exercises directory, use `npm ci` on a fresh checkout, then `npm run dev`; open `http://127.0.0.1:5173/`. Use `npm run build` for production output and `npm run preview` to serve that output at `http://127.0.0.1:4173/` (preview was executed and verified during QA).
+- [ ] Actual starter paths, React 19 setup, CSS Module support, commands, and Git root are confirmed.
+- [ ] `DeveloperCard` and reusable `SkillBadge` implement the agreed profile contract using real React.
+- [ ] DeveloperCard source and rendered card contain zero div tags; article naming, heading hierarchy, metrics, and skills are semantic.
+- [ ] Metrics use `Object.entries(metrics).map(...)` with keyed Fragments; skill keys use stable unique IDs.
+- [ ] Avatars are HTTPS-only with meaningful alt, explicit dimensions, and verified initials on failure.
+- [ ] CSS is provided through `DeveloperCard.module.css`, scoped classes, and appropriate custom properties; no inline style objects remain.
+- [ ] 375px measurements prove no horizontal document overflow; long-content and fallback checks remain readable.
+- [ ] Applicable contrast, accessibility-tree, safe-text, and Console checks have recorded results.
+- [ ] Available configured build/lint/tests are run; absent or blocked checks and unresolved issues are clearly disclosed.
+- [ ] Both required atomic commits exist with exact messages and focused staging, and the final diff is reviewed.
+- [ ] Temporary fixtures/debug output are removed and no MiniReact runtime or unrelated features were introduced.
+
+**Planning-deliverable boundary:** creating this document fulfills the current requested change. Future implementation remains gated on the missing Lab 3 starter; original slide visuals and Exercises 4.4/4.5 content remain unverified. Do not mark the implementation checkboxes complete based on this plan alone.
