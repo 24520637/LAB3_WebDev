@@ -13,7 +13,7 @@ export default function SquadSelector({ selectedSquadId, onSelect }) {
             onClick={() => onSelect(squad.id)}
           >
             {squad.id.toUpperCase()} — {squad.name}
-            {selectedSquadId === squad.id && <span className="selection-label">Selected</span>}
+            {selectedSquadId === squad.id && <> <span className="selection-label">Selected</span></>}
           </button>
         ))}
       </section>

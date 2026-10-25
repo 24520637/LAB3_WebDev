@@ -1,42 +1,86 @@
 :root {
-  font-family: system-ui, sans-serif;
-  color: #172033;
-  background: #f5f7fa;
-  line-height: 1.5;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-synthesis: none;
+  line-height: 1.5;
+  color-scheme: dark;
+  --page: #0a101c;
+  --surface: #111e30;
+  --surface-raised: #17283c;
+  --selected: #123a4a;
+  --text: #f1f5f9;
+  --muted: #b7c8da;
+  --accent: #67e8f9;
+  --accent-ink: #08202d;
+  --border: #40566f;
+  --focus: #facc15;
+  --danger: #ffb4aa;
+  --danger-text: #ffdad4;
+  --danger-surface: #2b1821;
+  --panel-padding: 1.25rem;
+  color: var(--text);
+  background: var(--page);
 }
 
 *,
 *::before,
-*::after {
-  box-sizing: border-box;
-}
+*::after { box-sizing: border-box; }
 
-body {
-  margin: 0;
-}
+body { margin: 0; }
 
-main {
-  max-width: 60rem;
+.dashboard {
+  max-width: 72rem;
   margin-inline: auto;
-  padding: 1rem;
+  padding: 1.5rem 1rem 3rem;
   overflow-wrap: anywhere;
 }
 
-h1 {
-  font-size: clamp(1.6rem, 5vw, 2.5rem);
-  line-height: 1.2;
+.dashboard-header {
+  display: grid;
+  gap: 1rem;
+  padding-block: 0.5rem 1.75rem;
+  margin-bottom: 1.75rem;
+  border-top: 3px solid var(--accent);
+  border-bottom: 1px solid var(--border);
+}
+
+.dashboard-kicker {
+  margin: 1rem 0 0;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.16em;
+}
+
+.dashboard-header h1 {
+  max-width: 22ch;
+  margin: 0;
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.simulation-notice {
+  max-width: 44rem;
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 2px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9375rem;
 }
 
 .squad-selector {
   min-width: 0;
-  margin: 1.5rem 0;
-  padding: 1rem;
-  border: 1px solid #788396;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: 0;
 }
 
 .squad-selector legend {
-  font-weight: 700;
+  padding: 0 0 0.875rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
 }
 
 .squad-buttons {
@@ -45,64 +89,74 @@ h1 {
 }
 
 .squad-buttons button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.5rem;
   min-width: 0;
-  min-height: 44px;
+  min-height: 88px;
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
+  font-weight: 600;
   text-align: left;
   overflow-wrap: anywhere;
-  border: 2px solid #788396;
-  background: #fff;
-  color: inherit;
   cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.squad-buttons button:hover {
+  border-color: var(--accent);
+  background: var(--surface-raised);
 }
 
 .squad-buttons button[aria-pressed='true'] {
-  border-color: #172033;
-  background: #172033;
-  color: #fff;
-  font-weight: 700;
+  border-color: var(--accent);
+  background: var(--selected);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .selection-label {
-  display: block;
-  font-size: 0.875rem;
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.25rem;
+  color: var(--accent);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.squad-buttons button:focus-visible {
-  outline: 3px solid #005fcc;
-  outline-offset: 3px;
-}
-
-.telemetry-card {
-  min-width: 0;
-  padding: 1rem;
-  border: 1px solid #788396;
-  background: #fff;
-}
-
-.telemetry-card h2 {
-  margin-top: 0;
-}
-
-.telemetry-card dl {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.75rem 1rem;
-  margin-bottom: 0;
-}
-
-.telemetry-card dt {
-  font-weight: 700;
-}
-
-.telemetry-card dd {
-  margin: 0;
+.squad-buttons button:focus-visible,
+.telemetry-error button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
 }
 
 @media (min-width: 768px) {
-  .squad-buttons {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+  :root { --panel-padding: 1.5rem; }
+  .dashboard { padding: 2rem 2rem 4rem; }
+  .dashboard-header { gap: 1.25rem; margin-bottom: 2rem; padding-bottom: 2rem; }
+  .squad-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .squad-buttons button { min-height: 112px; }
+}
+
+@media (min-width: 1024px) {
+  :root { --panel-padding: 2rem; }
+  .dashboard { padding: 3rem 3rem 5rem; }
+  .dashboard-header { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 1.5rem 2rem; }
+  .dashboard-kicker { grid-column: 1 / -1; }
+  .simulation-notice { align-self: end; }
+  .squad-buttons { gap: 1rem; }
+  .squad-buttons button { padding: 1.25rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .squad-buttons button { transition: none; }
 }
