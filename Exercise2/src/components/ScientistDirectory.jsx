@@ -1,12 +1,13 @@
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { SMART_PEOPLE } from '../data/smartPeople.js';
 
 export default function ScientistDirectory() {
-  const [people] = useState(SMART_PEOPLE);
+  const [people, setPeople] = useState(SMART_PEOPLE);
   const [query, setQuery] = useState('');
   const [minIq, setMinIq] = useState(160);
   const [sortBy, setSortBy] = useState('iq-desc');
   const controlId = useId();
+  const resetButtonRef = useRef(null);
 
   const visiblePeople = people
     .filter((person) =>
@@ -20,6 +21,16 @@ export default function ScientistDirectory() {
   function handleMinIqChange(event) {
     const value = event.target.valueAsNumber;
     setMinIq(Number.isNaN(value) ? 0 : value);
+  }
+
+  function handleDelete(id) {
+    setPeople((prev) => prev.filter((person) => person.id !== id));
+    // The deleted button disappears; keep keyboard focus on a persistent action.
+    resetButtonRef.current?.focus();
+  }
+
+  function handleReset() {
+    setPeople([...SMART_PEOPLE]);
   }
 
   return (
@@ -56,6 +67,16 @@ export default function ScientistDirectory() {
           <option value="age-asc">Age: youngest first</option>
         </select>
       </p>
+      <p>
+        <button ref={resetButtonRef} type="button" onClick={handleReset}>
+          Reset
+        </button>
+      </p>
+      <p role="status" aria-live="polite" aria-atomic="true">
+        Found {visiblePeople.length} pioneers.
+        {visiblePeople.length === 0 &&
+          ' No matching scientists. Adjust your search or minimum IQ, or use Reset to restore deleted records.'}
+      </p>
       <ul>
         {visiblePeople.map((person) => (
           <li key={person.id}>
@@ -66,6 +87,13 @@ export default function ScientistDirectory() {
               <dt>IQ</dt>
               <dd>{person.iq}</dd>
             </dl>
+            <button
+              type="button"
+              aria-label={`Delete ${person.name}`}
+              onClick={() => handleDelete(person.id)}
+            >
+              Delete
+            </button>
           </li>
         ))}
       </ul>

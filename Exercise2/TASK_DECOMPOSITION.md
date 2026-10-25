@@ -620,20 +620,20 @@ Implement immutable deletion, dataset restoration and accessible announcements.
 
 ### Tasks
 
-- [ ] P3.1 Implement handleDelete(id).
-- [ ] P3.2 Remove records using prev.filter().
-- [ ] P3.3 Identify scientists by their stable IDs.
-- [ ] P3.4 Implement Reset.
-- [ ] P3.5 Restore a fresh SMART_PEOPLE array snapshot.
-- [ ] P3.6 Confirm Reset includes sp-huong.
-- [ ] P3.7 Add the live result counter.
-- [ ] P3.8 Use role="status".
-- [ ] P3.9 Use aria-live="polite".
-- [ ] P3.10 Display zero-result feedback.
-- [ ] P3.11 Add accessible Delete button names.
-- [ ] P3.12 Add keyboard-accessible Reset control.
-- [ ] P3.13 Verify visible focus.
-- [ ] P3.14 Verify appropriate focus after deletion.
+- [x] P3.1 Implement handleDelete(id).
+- [x] P3.2 Remove records using prev.filter().
+- [x] P3.3 Identify scientists by their stable IDs.
+- [x] P3.4 Implement Reset.
+- [x] P3.5 Restore a fresh SMART_PEOPLE array snapshot.
+- [x] P3.6 Confirm Reset includes sp-huong.
+- [x] P3.7 Add the live result counter.
+- [x] P3.8 Use role="status".
+- [x] P3.9 Use aria-live="polite".
+- [x] P3.10 Display zero-result feedback.
+- [x] P3.11 Add accessible Delete button names.
+- [x] P3.12 Add keyboard-accessible Reset control.
+- [x] P3.13 Verify visible focus.
+- [x] P3.14 Verify appropriate focus after deletion.
 
 ### Deletion contract
 
@@ -679,16 +679,16 @@ Existing styles may be adjusted if needed.
 
 ### Acceptance criteria
 
-- [ ] Delete removes exactly one matching record.
-- [ ] Deletion does not mutate source data.
-- [ ] Reset restores all seven records.
-- [ ] Huong can be deleted and restored.
-- [ ] Repeated Reset does not create duplicates.
-- [ ] Result count updates correctly.
-- [ ] Empty results are announced.
-- [ ] Buttons work with keyboard activation.
-- [ ] Focus remains usable after deletion.
-- [ ] Remaining list keys are stable.
+- [x] Delete removes exactly one matching record.
+- [x] Deletion does not mutate source data.
+- [x] Reset restores all seven records.
+- [x] Huong can be deleted and restored.
+- [x] Repeated Reset does not create duplicates.
+- [x] Result count updates correctly.
+- [x] Empty results are announced.
+- [x] Buttons work with keyboard activation.
+- [x] Focus remains usable after deletion.
+- [x] Remaining list keys are stable.
 
 ### Manual verification
 
@@ -899,7 +899,7 @@ Do not fabricate hashes or claim commits exist before they are created.
 | P0B — Conditional React/Vite setup | VERIFIED — dependencies installed with approval; build/dev/browser mount passed |
 | P1 — Dataset normalization | DONE — data contract verified; no UI implemented |
 | P2 — Search, IQ filter and sorting | VERIFIED — browser Search/Filter/Sort scenarios passed |
-| P3 — Delete, Reset and accessibility | TODO |
+| P3 — Delete, Reset and accessibility | VERIFIED — deletion/Reset, keyboard/focus and live-status markup passed |
 | P4 — QA and build verification | NOT RUN |
 | P5 — Evidence and Git verification | NOT RUN |
 
@@ -918,7 +918,7 @@ Do not change TODO to DONE without corresponding evidence.
 
 ## P1 execution record — 2026-10-25
 
-Implemented only `src/data/smartPeople.js`: named `SMART_PEOPLE` export with all seven exact records from section 4. No existing UI or filtering was changed. Node assertions verified exact WBS values, seven unique string IDs, numeric finite age/IQ, stable IDs across independent module evaluations, unchanged source, and a fresh complete array-copy contract for initial state/Reset. Syntax check and diff whitespace check passed. The initial verification-script failure and its passing retest are recorded in `AI_FAILURE_AUDIT.md`, as required by the user's new instruction overriding the original audit exclusion. Browser/build checks were not rerun; P0B's dependency blocker remains. No dependencies installed, no commit or push. Stop after P1.
+Implemented only `src/data/smartPeople.js`: named `SMART_PEOPLE` export with all seven exact records from section 4. No existing UI or filtering was changed. Node assertions verified exact WBS values, seven unique string IDs, numeric finite age/IQ, stable IDs across independent module evaluations, unchanged source, and a fresh complete array-copy contract for initial state/Reset. Syntax check and diff whitespace check passed. The initial verification-script failure passed on retest; verification-script issues are excluded from `AI_FAILURE_AUDIT.md` under the user's clarified policy. Browser/build checks were not rerun; P0B's dependency blocker remains. No dependencies installed, no commit or push. Stop after P1.
 
 ## P0A/P0B execution record — 2026-10-25
 
@@ -1000,7 +1000,7 @@ Do not install a new testing dependency without approval.
 
 Do not implement:
 
-- `AI_FAILURE_AUDIT.md` is now required by the user's 2026-10-25 instruction and is excluded from this out-of-scope list. Record real testing failures; the minimum three-bug target must not be met with fabricated findings.
+- `AI_FAILURE_AUDIT.md` is now required by the user's 2026-10-25 instruction and is excluded from this out-of-scope list. Record only evidenced application-code logic or behavior bugs, excluding environment and testing-tool issues; the minimum three-bug target must not be met with fabricated findings.
 - Adversarial prompts.
 - Failure experiments.
 - API fetching.
@@ -1050,3 +1050,14 @@ User approved `npm install`: 19 packages added, audit reported 0 vulnerabilities
 - Both full sort orders match expected data, including stable original order for the equal-IQ Newton/Maxwell pair. Read browser warn/error logs after testing: empty. No new application bugs found, so no audit entries added; the two excluded issues were not re-added.
 - Reviewed source for `valueAsNumber`, `useId` labels, stable `person.id` keys, render-derived list and no effects/mutating sort. Prior Node data-preservation assertions remain valid; application code was not changed during this test run.
 - Reset controls to the default query/IQ/sort after testing. Screenshot saved outside the repository in the system temporary folder. No P3 work, DevTools Profiler, 375px audit, commit or push. Earlier dependency-blocked records above describe historical runs and are superseded by this successful verification.
+
+## P3 implementation and verification — 2026-10-25
+
+- Changed only `src/components/ScientistDirectory.jsx` plus this WBS and the audit. Added immutable `setPeople(prev => prev.filter(person => person.id !== id))` and Reset with a fresh `[...SMART_PEOPLE]` array. Search/IQ/sort remain unchanged by Reset. No effects or extra state were added for derived results.
+- Delete buttons have explicit type and unique accessible names; Reset has explicit type. A persistent `role="status"`, `aria-live="polite"`, `aria-atomic="true"` region reports counts and gives recovery guidance for zero matches.
+- A ref moves focus to the persistent Reset button after every deletion. Browser keyboard checks: Tab traverses search -> IQ -> sort -> Reset -> Delete; Enter deletes Huong and Space restores her from focused Reset. Also verified Space deletes Goethe and Enter resets. Focus remains on Reset after deleting the last visible item or all records. Browser focus outline style was auto and the visible outline was inspected in a screenshot.
+- PASSED browser checks: Huong can be deleted/restored with nondefault HUONG/0/age-asc controls preserved; zero/one/seven counts update; Goethe deletion removes only Goethe; Einstein accessibility-node ID remains unchanged; repeated Reset yields exactly seven; deleting all seven then Reset restores all original names, ages and IQ values including Huong. Source review confirms stable ID keys and immutable updates.
+- PASSED 12 Search/Filter/Sort regressions: IQ 109/110/160/210/211, lower/uppercase Huong, trimmed mixed-case Einstein, partial name, unmatched query, complete age order and complete IQ order. No console warnings/errors. `npm run build` PASSED. Final `git diff --check` PASSED.
+- Initial browser connection failed because the old server had stopped; starting Vite and binding a fresh tab resolved it. This setup/tooling issue is excluded from `AI_FAILURE_AUDIT.md` per the user's clarified policy; no application bugs found.
+- NOT RUN: screen-reader speech output (live-region attributes and updates were inspected), React DevTools Profiler, full WCAG audit, 375px/P4 checks. No test/lint scripts exist. Screenshot: system temporary folder, `ex2-p3-reset-focus.png`.
+- No dependencies added, no Exercise 1/unrelated changes, no commit or push. Stop after P3.
