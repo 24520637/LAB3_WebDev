@@ -498,25 +498,25 @@ Create the interactive Scientist Directory using React state and derived renderi
 
 ### Tasks
 
-- [ ] P2.1 Create ScientistDirectory function component.
-- [ ] P2.2 Import React useState and useId.
-- [ ] P2.3 Initialize people from SMART_PEOPLE.
-- [ ] P2.4 Initialize query as an empty string.
-- [ ] P2.5 Initialize minIq as 160.
-- [ ] P2.6 Initialize sortBy as iq-desc.
-- [ ] P2.7 Create controlled name-search input.
-- [ ] P2.8 Create controlled minimum-IQ numeric input.
-- [ ] P2.9 Use event.target.valueAsNumber.
-- [ ] P2.10 Handle NaN for empty numeric input.
-- [ ] P2.11 Create controlled sorting selector.
-- [ ] P2.12 Implement case-insensitive partial search.
-- [ ] P2.13 Implement numeric minimum-IQ filtering.
-- [ ] P2.14 Implement IQ-descending sorting.
-- [ ] P2.15 Implement age-ascending sorting.
-- [ ] P2.16 Use ES2023 toSorted().
-- [ ] P2.17 Calculate visiblePeople during render.
-- [ ] P2.18 Render scientists using stable ID keys.
-- [ ] P2.19 Integrate the directory into the existing App if needed.
+- [x] P2.1 Create ScientistDirectory function component.
+- [x] P2.2 Import React useState and useId.
+- [x] P2.3 Initialize people from SMART_PEOPLE.
+- [x] P2.4 Initialize query as an empty string.
+- [x] P2.5 Initialize minIq as 160.
+- [x] P2.6 Initialize sortBy as iq-desc.
+- [x] P2.7 Create controlled name-search input.
+- [x] P2.8 Create controlled minimum-IQ numeric input.
+- [x] P2.9 Use event.target.valueAsNumber.
+- [x] P2.10 Handle NaN for empty numeric input.
+- [x] P2.11 Create controlled sorting selector.
+- [x] P2.12 Implement case-insensitive partial search.
+- [x] P2.13 Implement numeric minimum-IQ filtering.
+- [x] P2.14 Implement IQ-descending sorting.
+- [x] P2.15 Implement age-ascending sorting.
+- [x] P2.16 Use ES2023 toSorted().
+- [x] P2.17 Calculate visiblePeople during render.
+- [x] P2.18 Render scientists using stable ID keys.
+- [x] P2.19 Integrate the directory into the existing App if needed.
 
 ### Required React state
 
@@ -567,16 +567,16 @@ src/App.jsx   (only if integration is necessary)
 
 ### Acceptance criteria
 
-- [ ] Search updates immediately.
-- [ ] Name search is case-insensitive.
-- [ ] Partial names are supported.
-- [ ] Minimum IQ is numeric.
-- [ ] IQ sorting works.
-- [ ] Age sorting works.
-- [ ] Derived list recalculates correctly.
-- [ ] Original people state is not mutated.
-- [ ] Each rendered list item uses person.id.
-- [ ] All inputs are controlled and labeled.
+- [x] Search updates immediately.
+- [x] Name search is case-insensitive.
+- [x] Partial names are supported.
+- [x] Minimum IQ is numeric.
+- [x] IQ sorting works.
+- [x] Age sorting works.
+- [x] Derived list recalculates correctly.
+- [x] Original people state is not mutated.
+- [x] Each rendered list item uses person.id.
+- [x] All inputs are controlled and labeled.
 
 ### Required Huong test cases
 
@@ -896,14 +896,25 @@ Do not fabricate hashes or claim commits exist before they are created.
 | Phase | Status |
 |---|---|
 | P0A — Inspect project | INSPECTED; target-browser support not verified |
-| P0B — Conditional React/Vite setup | FILES CREATED; runtime verification blocked by missing dependencies |
+| P0B — Conditional React/Vite setup | VERIFIED — dependencies installed with approval; build/dev/browser mount passed |
 | P1 — Dataset normalization | DONE — data contract verified; no UI implemented |
-| P2 — Search, IQ filter and sorting | TODO |
+| P2 — Search, IQ filter and sorting | VERIFIED — browser Search/Filter/Sort scenarios passed |
 | P3 — Delete, Reset and accessibility | TODO |
 | P4 — QA and build verification | NOT RUN |
 | P5 — Evidence and Git verification | NOT RUN |
 
 Do not change TODO to DONE without corresponding evidence.
+
+## P2 execution record — 2026-10-25
+
+- Added `src/components/ScientistDirectory.jsx` and integrated it into the existing App. No props or external side effects; the component owns people/query/minIq/sortBy. It imports real React `useState` and `useId`.
+- Initial state is SMART_PEOPLE / empty query / 160 / iq-desc. The people setter is intentionally unused until a later authorized phase needs data updates.
+- `visiblePeople` is derived during render with case-insensitive trimmed partial search, numeric IQ comparison, and immutable `toSorted()` for IQ descending or age ascending. No filtering/sorting effect or derived-list state.
+- Controlled search, numeric and select fields have visible labels connected through `useId`. Numeric input uses `event.target.valueAsNumber`; NaN (empty/invalid numeric input) becomes 0. List keys use `person.id`. Dataset values remain unchanged.
+- PASSED: `npm run`; 15 Node assertions on the actual extracted pipeline/handler covering all P2 Huong scenarios, complete sort orders, name trimming/case/partial match, IQ 210/211, unmatched results, NaN fallback, numeric updates, and source preservation. Also checked source for four state hooks, stable keys, no useEffect, and reviewed labels/controlled values.
+- FAILED: `npm run build` and `npm run dev`, both exit 1 because Vite is not installed. A rejected data-URL import in the verification script passed after switching to a temporary file module. Per the user's instruction, these two issues are excluded from `AI_FAILURE_AUDIT.md`.
+- NOT VERIFIED: JSX compilation, real React rendering, browser console, actual keyboard/DOM event behavior, browser toSorted support, React DevTools or list reconciliation. Logic extraction is not a React runtime test; P2 acceptance remains partially unverified.
+- No dependencies installed; no P3 delete/Reset/live status, no commit or push. Stop after P2.
 
 ## P1 execution record — 2026-10-25
 
@@ -1030,3 +1041,12 @@ Exercise 2 is complete only when:
 - [ ] Three mandatory commits are verified if authorized.
 - [ ] Unrelated project files remain intact.
 
+
+## Search / Filter / Sort browser verification — 2026-10-25
+
+User approved `npm install`: 19 packages added, audit reported 0 vulnerabilities; `package-lock.json` generated. `npm run build` PASSED (17 modules). `npm run dev` PASSED at http://127.0.0.1:5174/. Tested the actual React app in the in-app browser using labeled controls and accessibility snapshots.
+
+- PASSED 18 scenarios: initial six records; IQ 109 -> seven; IQ 110 -> six; IQ 0 -> seven; IQ 160 -> six; IQ 210 -> Goethe only; IQ 211 -> none; huong/HUONG -> Huong; trimmed mixed-case Einstein; partial vin -> Leonardo; unmatched search; Huong with IQ 110 -> none; whitespace-only query -> seven; full age-ascending order; full IQ-descending order; cleared numeric input -> controlled 0 with seven results; keyboard typing EIN -> Einstein immediately.
+- Both full sort orders match expected data, including stable original order for the equal-IQ Newton/Maxwell pair. Read browser warn/error logs after testing: empty. No new application bugs found, so no audit entries added; the two excluded issues were not re-added.
+- Reviewed source for `valueAsNumber`, `useId` labels, stable `person.id` keys, render-derived list and no effects/mutating sort. Prior Node data-preservation assertions remain valid; application code was not changed during this test run.
+- Reset controls to the default query/IQ/sort after testing. Screenshot saved outside the repository in the system temporary folder. No P3 work, DevTools Profiler, 375px audit, commit or push. Earlier dependency-blocked records above describe historical runs and are superseded by this successful verification.
