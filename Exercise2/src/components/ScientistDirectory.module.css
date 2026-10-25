@@ -1,0 +1,38 @@
+.control {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+  max-inline-size: 30rem;
+}
+
+.control input,
+.control select {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.help {
+  grid-column: 2;
+}
+
+.metadata {
+  display: grid;
+  grid-template-columns: 3rem max-content;
+  gap: 0.25rem 0.75rem;
+}
+
+.metadata dd {
+  margin: 0;
+}
+
+@media (max-width: 400px) {
+  .control {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .help {
+    grid-column: 1;
+  }
+}
