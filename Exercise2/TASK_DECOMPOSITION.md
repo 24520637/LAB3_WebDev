@@ -432,14 +432,14 @@ Create the initial dataset with unique, stable identifiers.
 
 ### Tasks
 
-- [ ] P1.1 Create or update the existing appropriate data module.
-- [ ] P1.2 Define SMART_PEOPLE.
-- [ ] P1.3 Add six original required scientists.
-- [ ] P1.4 Add the exact sp-huong record.
-- [ ] P1.5 Verify name, age and IQ types.
-- [ ] P1.6 Verify all seven IDs are unique.
-- [ ] P1.7 Ensure the source array is not mutated.
-- [ ] P1.8 Prepare initial-state and Reset data contracts.
+- [x] P1.1 Create or update the existing appropriate data module.
+- [x] P1.2 Define SMART_PEOPLE.
+- [x] P1.3 Add six original required scientists.
+- [x] P1.4 Add the exact sp-huong record.
+- [x] P1.5 Verify name, age and IQ types.
+- [x] P1.6 Verify all seven IDs are unique.
+- [x] P1.7 Ensure the source array is not mutated.
+- [x] P1.8 Prepare initial-state and Reset data contracts.
 
 ### Dependencies
 
@@ -455,13 +455,13 @@ Use the existing project location if different.
 
 ### Acceptance criteria
 
-- [ ] Exactly seven records.
-- [ ] IDs are unique.
-- [ ] Six original records unchanged.
-- [ ] Huong record has correct data.
-- [ ] All IQ and age values are numbers.
-- [ ] Dataset can be imported without modification.
-- [ ] Reset can restore the complete source dataset.
+- [x] Exactly seven records.
+- [x] IDs are unique.
+- [x] Six original records unchanged.
+- [x] Huong record has correct data.
+- [x] All IQ and age values are numbers.
+- [x] Dataset can be imported without modification.
+- [x] Reset can restore the complete source dataset (array-copy data contract only; UI not implemented).
 
 ### Verification
 
@@ -895,15 +895,49 @@ Do not fabricate hashes or claim commits exist before they are created.
 
 | Phase | Status |
 |---|---|
-| P0A — Inspect project | BLOCKED / PENDING |
-| P0B — Conditional React/Vite setup | TODO / CONDITIONAL |
-| P1 — Dataset normalization | TODO |
+| P0A — Inspect project | INSPECTED; target-browser support not verified |
+| P0B — Conditional React/Vite setup | FILES CREATED; runtime verification blocked by missing dependencies |
+| P1 — Dataset normalization | DONE — data contract verified; no UI implemented |
 | P2 — Search, IQ filter and sorting | TODO |
 | P3 — Delete, Reset and accessibility | TODO |
 | P4 — QA and build verification | NOT RUN |
 | P5 — Evidence and Git verification | NOT RUN |
 
 Do not change TODO to DONE without corresponding evidence.
+
+## P1 execution record — 2026-10-25
+
+Implemented only `src/data/smartPeople.js`: named `SMART_PEOPLE` export with all seven exact records from section 4. No existing UI or filtering was changed. Node assertions verified exact WBS values, seven unique string IDs, numeric finite age/IQ, stable IDs across independent module evaluations, unchanged source, and a fresh complete array-copy contract for initial state/Reset. Syntax check and diff whitespace check passed. The initial verification-script failure and its passing retest are recorded in `AI_FAILURE_AUDIT.md`, as required by the user's new instruction overriding the original audit exclusion. Browser/build checks were not rerun; P0B's dependency blocker remains. No dependencies installed, no commit or push. Stop after P1.
+
+## P0A/P0B execution record — 2026-10-25
+
+- Scope: P0A and P0B only. No dataset, directory features, dependency installation, commit or push.
+- Exercise 2 root: `C:/Users/buing/OneDrive/Documents/WebDev/LAB3_WebDev/Exercise2`.
+- Git root: parent `LAB3_WebDev`; branch `main`, initially synchronized with `origin/main`. Initial status contained only the untracked `Exercise1.zip`; it was preserved.
+- Read `PROJECT_RULES.md` and this WBS before implementation. No `AGENTS.md` was found in the inspected project tree or checked ancestor locations.
+- Original Exercise 2 tree contained only these two Markdown files, including hidden-file inspection. No package manifest, lockfile, HTML entry, React entry, components, styles, tests, Vite configuration or local dependencies existed. No repository-root package manifest or shared dependency directory was found.
+- Classification: Case C. Hosting decision: standalone Exercise 2, based on the actual empty host and the user's explicit Exercise 2-only boundary. Exercise 1 was inspected read-only as an archive reference, never extracted or modified.
+- Reference files inspected inside `Exercise1.zip`: `Exercises/package.json`, `vite.config.js`, `src/main.jsx`, and `src/App.jsx`. They use React/React DOM 19.3.1, Vite 8.3.5, React plugin 6.1.2, ESM, `createRoot`, StrictMode, and the automatic JSX runtime. These versions are reused as existing repository conventions, not asserted to be instructor-mandated versions or registry-verified availability.
+- Added only `package.json`, `index.html`, `vite.config.js`, `src/main.jsx`, and a semantic placeholder `src/App.jsx`. There is one HTML root and one React entry. The React plugin configuration preserves the reference JSX convention. Development/preview ports are 5174/4174 to allow Exercise 1's 5173/4173 ports to remain available.
+- No lockfile was fabricated; no dependencies were installed or copied. Root ignore rules already cover `node_modules`, `dist`, and Vite caches.
+
+### Actual verification results
+
+| Check | Result |
+|---|---|
+| Git status / branch / root | PASSED: actual locations and initial state recorded above |
+| `node --version` / `npm --version` | PASSED: v26.8.2 / 11.19.1 |
+| `node -p typeof([].toSorted)` | PASSED: `function` |
+| `npm run` | PASSED: lists `dev`, `build`, `preview`; no test/lint scripts |
+| `npm run dev` | FAILED: `'vite' is not recognized`; server did not start |
+| `npm run build` | FAILED: `'vite' is not recognized`; no production build produced |
+| `npm ls --depth=0` | FAILED: ELSPROBLEMS; all four declared dependencies are missing |
+| `git diff --check` | PASSED for tracked changes |
+| Browser mount and browser `toSorted()` | NOT RUN: no runnable server; target browser unspecified |
+| Tests / lint | NOT RUN: no configured scripts or test runner |
+| Preview | NOT RUN: no successful production build |
+
+P0B is not marked DONE or SKIPPED: installing the declared dependencies requires user approval, and development/build/browser acceptance criteria remain unverified. Stop here; P1–P5 remain unchanged. Local PowerShell launches failed with a Windows CET support error; inspection and npm commands were run using `cmd.exe` instead.
 
 ---
 
@@ -955,7 +989,7 @@ Do not install a new testing dependency without approval.
 
 Do not implement:
 
-- AI_FAILURE_AUDIT.md.
+- `AI_FAILURE_AUDIT.md` is now required by the user's 2026-10-25 instruction and is excluded from this out-of-scope list. Record real testing failures; the minimum three-bug target must not be met with fabricated findings.
 - Adversarial prompts.
 - Failure experiments.
 - API fetching.

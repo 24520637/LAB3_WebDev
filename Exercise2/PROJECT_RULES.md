@@ -98,6 +98,8 @@ Before implementation, check whether `TASK_DECOMPOSITION.md` or an equivalent WB
 
 ## 7. Testing and Verification
 
+- Per the user's 2026-10-25 instruction, record every failure discovered during testing in `AI_FAILURE_AUDIT.md`, with reproduction evidence, cause, fix status, and retest results. The audit requires at least three distinct evidenced bugs; never invent defects or count repeated symptoms as separate bugs. Record honestly when fewer have been found.
+
 - Test through the real application entry point when feasible, not only by invoking an isolated helper.
 - Cover normal behavior, invalid input, empty data, loading, success, failure, retry, and relevant edge cases.
 - For async flows, test cancellation, stale responses, rapid repeated actions, and cleanup where applicable.
