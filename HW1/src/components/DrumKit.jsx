@@ -3,12 +3,14 @@ import { DRUM_PADS } from '../data/pads.js';
 import { drumReducer, initialDrumState } from '../state/drumState.js';
 import { useDrumKeyboard } from '../hooks/useDrumKeyboard.js';
 import DrumPad from './DrumPad.jsx';
+import HitHistory from './HitHistory.jsx';
+import AudioLevelMeter from './AudioLevelMeter.jsx';
 import { useDrumAudio } from '../hooks/useDrumAudio.js';
 
 /** Buttons and physical keys share one hit-processing pathway. */
 export default function DrumKit() {
   const [drumState, dispatch] = useReducer(drumReducer, initialDrumState);
-  const { playPad, audioError } = useDrumAudio();
+  const { playPad, audioError, dbfs } = useDrumAudio();
   const padMap = useMemo(() => new Map(DRUM_PADS.map((pad) => [pad.code, pad])), []);
 
   const onHit = useCallback((padId, activate = true) => {
@@ -52,6 +54,8 @@ export default function DrumKit() {
           />
         ))}
       </div>
+      <AudioLevelMeter dbfs={dbfs} />
+      <HitHistory hits={drumState.hitHistory} />
       {audioError && <p role="status" className="audio-error">{audioError}</p>}
     </section>
   );

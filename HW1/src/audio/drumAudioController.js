@@ -6,6 +6,7 @@ export function createDrumAudioController({
   pads = DRUM_PADS,
   createEngine = () => new AudioEngine(),
   onError = () => {},
+  onActivityChange = () => {},
 } = {}) {
   let disposed = false;
   let engine;
@@ -40,10 +41,14 @@ export function createDrumAudioController({
       preload: async () => ({ loaded: [], failed: Object.keys(soundMap) }),
       trigger: () => Promise.resolve(false),
       dispose: async () => {},
+      readDbfs: () => null,
     };
   }
 
+  engine.setActivityListener?.(onActivityChange);
+
   return {
+    readDbfs: () => disposed ? null : (engine.readDbfs?.() ?? null),
     async preload() {
       if (disposed) return { loaded: [], failed: [] };
       try {

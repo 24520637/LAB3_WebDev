@@ -175,5 +175,143 @@ Captured browser warning/error logs: []
   failures, and disposal also passed the supplied mock-based tests.
 - No Chrome DevTools recording, actual screen-reader test, UniKey test, or
   mobile-browser test was performed for this finding.
-- This is **one** evidenced application bug. No extra defects or DevTools
+- This finding is **one** evidenced application bug. No extra defects or DevTools
   screenshots are invented to satisfy the assignment's three-bug requirement.
+
+## Failure 02 — Repeated same-pad hits do not update the live region
+
+**Reviewed:** 2026-11-09 (Asia/Saigon).
+
+**Source:** T-10 code imported from `HW1_T10.zip`.
+
+**Related implementation prompt (provided by the user):**
+
+```text
+Implement only T-10 from TASK_DECOMPOSITION.md:
+Create the accessible visual hit history.
+
+Requirements:
+
+- Use an output element with aria-live="polite".
+- Display recent drum hits visibly.
+- Show meaningful information such as pad name
+  and the order of recent hits.
+- Keep the visual history synchronized with React state.
+- Keep history bounded.
+- Avoid excessively verbose announcements.
+- Ensure history does not depend on successful audio playback.
+- Preserve keyboard and screen-reader usability.
+
+Testing:
+- A single hit.
+- Multiple rapid hits.
+- Different pad hits.
+- Correct history order.
+- History limit.
+- Screen-reader announcement behavior.
+- Audio failure while hit history continues to work.
+
+Do not use innerHTML.
+Do not create an unrelated logging system.
+Do not modify unrelated files.
+```
+
+The user identified this as the implementation prompt. The defect is in the
+generated update behavior; this does not show that the prompt itself is wrong.
+
+### Affected code and cause
+
+`src/components/HitHistory.jsx` delays the live-region state update by 300 ms:
+
+```jsx
+const timeout = setTimeout(() => {
+  setAnnouncement(getLatestHitAnnouncement(hits, DRUM_PADS));
+}, ANNOUNCEMENT_DELAY_MS);
+```
+
+`src/state/hitHistoryView.js` constructs the announcement using only sound
+name and key, excluding the unique hit ID:
+
+```js
+return latest ? `Latest hit: ${latest.label}, key ${latest.key}.` : '';
+```
+
+Two separate Kick hits therefore produce the identical state string
+`Latest hit: Kick, key W.`. Despite a new history entry and a rerun of the
+effect, the live-region text does not change on the second hit. The history
+list has `aria-live="off"`, so its new item is not an alternative polite
+announcement of that event.
+
+### Reproduction and actual browser evidence
+
+The actual React application was loaded through a temporary instrumentation
+page at `http://127.0.0.1:5184/.vite/t10-live-check.html`. A MutationObserver
+counted child/text mutations inside the application's existing `output`;
+it did not replace the component or its state logic. A separate non-live
+diagnostic element displayed the counts.
+
+1. Begin with empty history and an empty live output.
+2. Click Kick and wait at least 550 ms, allowing the 300 ms update to settle.
+3. Click Kick again and wait another 550 ms. These are separated hits,
+   not one rapid sequence intentionally coalesced by the debounce.
+4. Compare history length with live-region mutation count.
+
+Actual diagnostic text returned by the browser:
+
+```text
+Clicks: 1; live updates: 1; history: 1; messages: ["Latest hit: Kick, key W."]
+Clicks: 2; live updates: 1; history: 2; messages: ["Latest hit: Kick, key W."]
+```
+
+The DOM/accessibility snapshot showed two visible Kick history items but
+only the same single output message.
+
+A separate **synthetic eight-hit burst** dispatched clicks synchronously
+through the actual pad buttons. It added eight history entries and only one
+live-region update for the final Snare hit:
+
+```text
+Clicks: 10; live updates: 2; history: 10;
+messages: ["Latest hit: Kick, key W.","Latest hit: Snare, key A."]
+```
+
+Thus this run confirmed missing updates for separated identical hits, not
+excessive updates for the tested burst. The temporary instrumentation page
+was removed afterward; application source was unchanged by that check.
+
+To reproduce independently, observe the mounted output before clicking:
+
+```js
+const liveOutput = document.querySelector('.hit-history output');
+let liveUpdates = 0;
+const observer = new MutationObserver(() => { liveUpdates += 1; });
+observer.observe(liveOutput, {
+  childList: true,
+  characterData: true,
+  subtree: true,
+});
+// Perform the two separated clicks above, then inspect liveUpdates.
+// Disconnect when finished: observer.disconnect();
+```
+
+This is a reproduction aid, not a claim that Chrome DevTools was used for
+the recorded run.
+
+### Impact and limitations
+
+**Impact:** A new same-pad hit after a pause creates no new live-region DOM
+update for assistive technology to announce. Screen-reader users can miss
+feedback for that event. Actual spoken behavior was **not tested**; no
+screen-reader transcript or formal WCAG failure is claimed.
+
+**Retest:** On the production application in the in-app browser, clicked Kick,
+waited for `Hit 1: Kick, key W.`, then clicked Kick again and waited for
+`Hit 2: Kick, key W.`. The visible history contained two entries. This confirms
+that the live output now changes for separated same-pad hits. The T-11 suite
+passed 59/59 Node tests and the production build passed. Actual screen-reader
+speech remains unverified; the user asked to skip that test. No spoken
+announcement or screen-reader usability result is inferred from DOM changes.
+
+**Audit count:** Two distinct application findings are now documented:
+The assignment's three-bug requirement and real screen-reader/DevTools
+evidence are not complete.

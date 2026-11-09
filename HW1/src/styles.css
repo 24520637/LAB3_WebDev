@@ -103,3 +103,56 @@ body {
   color: #ffd6b5;
   font-size: 0.95rem;
 }
+
+/* T-10: visible hit history; only the separate output announces updates. */
+.hit-history {
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+.hit-history h2 {
+  font-size: 1.1rem;
+}
+
+.hit-history-list {
+  max-height: 16rem;
+  overflow-y: auto;
+  padding-left: 2rem;
+}
+
+.hit-history-list li {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #555;
+  overflow-wrap: anywhere;
+}
+
+.hit-history-list li kbd {
+  margin-left: 0.75rem;
+  color: #ddd;
+}
+
+.hit-history-empty {
+  color: #ddd;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* T-11: real digital output level; no decorative audio-reactive animation. */
+.audio-level {
+  margin-top: 1.5rem;
+  text-align: left;
+}
+.audio-level h2 { font-size: 1.1rem; }
+.audio-level-meter { display: block; width: 100%; height: 1.5rem; }
+.audio-level-reading { font-variant-numeric: tabular-nums; font-weight: 600; }
+.audio-level-explanation { color: #ddd; font-size: 0.9rem; }

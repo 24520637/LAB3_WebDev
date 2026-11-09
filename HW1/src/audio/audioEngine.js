@@ -18,6 +18,26 @@ export class AudioEngine {
     this.errors = new Map();
     this.disposed = false;
     this.preloadController = new AbortController();
+
+    // One master analysis node measures the *mixed audio signal*, not key hits.
+    // If analysis is unsupported, preserve legacy playback through destination.
+    this.analyser = null;
+    this.sampleBuffer = null;
+    this.onActivityChange = null;
+    if (typeof this.context.createAnalyser === 'function') {
+      try {
+        const analyser = this.context.createAnalyser();
+        analyser.fftSize = 1024;
+        if (typeof analyser.getFloatTimeDomainData !== 'function') {
+          throw new Error('Time-domain audio analysis unavailable.');
+        }
+        analyser.connect(this.context.destination);
+        this.analyser = analyser;
+        this.sampleBuffer = new Float32Array(analyser.fftSize);
+      } catch {
+        this.analyser = null;
+      }
+    }
   }
 
   async preload(soundMap) {
@@ -75,7 +95,7 @@ export class AudioEngine {
     }
     const source = this.context.createBufferSource();
     source.buffer = buffer;
-    source.connect(this.context.destination);
+    source.connect(this.analyser ?? this.context.destination);
     instances.push(source);
     source.onended = () => {
       const current = this.activeInstances.get(soundId);
@@ -85,9 +105,11 @@ export class AudioEngine {
       try { source.disconnect(); } catch { /* node already disconnected */ }
       source.onended = null;
       if (current.length === 0) this.activeInstances.delete(soundId);
+      this.notifyActivity();
     };
     try {
       source.start(0);
+      this.notifyActivity();
     } catch {
       const index = instances.indexOf(source);
       if (index !== -1) instances.splice(index, 1);
@@ -97,6 +119,25 @@ export class AudioEngine {
       return null;
     }
     return source;
+  }
+
+  /** Notifies the UI only when playback activity changes. */
+  setActivityListener(listener) {
+    this.onActivityChange = listener;
+  }
+
+  notifyActivity() {
+    this.onActivityChange?.(this.activeInstances.size > 0);
+  }
+
+  /** Actual output amplitude expressed in digital dBFS; silence is -Infinity. */
+  readDbfs() {
+    if (this.disposed || !this.analyser || !this.sampleBuffer) return null;
+    try { this.analyser.getFloatTimeDomainData(this.sampleBuffer); } catch { return null; }
+    let power = 0;
+    for (const value of this.sampleBuffer) power += value * value;
+    const rms = Math.sqrt(power / this.sampleBuffer.length);
+    return rms === 0 ? -Infinity : 20 * Math.log10(rms);
   }
 
   /** Required for React unmount / StrictMode effect re-execution. */
@@ -112,6 +153,11 @@ export class AudioEngine {
       }
     }
     this.activeInstances.clear();
+    this.notifyActivity();
+    this.onActivityChange = null;
+    try { this.analyser?.disconnect(); } catch { /* already disconnected */ }
+    this.analyser = null;
+    this.sampleBuffer = null;
     this.buffers.clear();
     this.errors.clear();
     if (this.context.state !== 'closed') await this.context.close();
