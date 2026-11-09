@@ -16,10 +16,10 @@ export function createClaimController({ dropId, initialStock, claimService, crea
   // A lost response or abort does not prove that the authority rejected a claim.
   // Keep the same logical operation until a receipt or definitive 409 settles it.
   let unresolvedClaim = null;
-  let snapshot = Object.freeze({ remainingStock: initialStock, pending: false, status: 'idle', message: '' });
+  let snapshot = Object.freeze({ remainingStock: initialStock, pending: false, unresolved: false, status: 'idle', message: '' });
   const listeners = new Set();
   const publish = (status, message = '') => {
-    snapshot = Object.freeze({ remainingStock: Math.max(0, baseStock - (active ? 1 : 0)), pending: Boolean(active), status, message });
+    snapshot = Object.freeze({ remainingStock: Math.max(0, baseStock - (active ? 1 : 0)), pending: Boolean(active), unresolved: Boolean(unresolvedClaim), status, message });
     for (const listener of listeners) listener();
   };
   const applyServerStock = value => {
@@ -30,6 +30,7 @@ export function createClaimController({ dropId, initialStock, claimService, crea
   return {
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     getSnapshot() { return snapshot; },
+    hasUnresolvedClaim() { return Boolean(unresolvedClaim); },
     /** A later authoritative stock notification can arrive while a claim is pending. */
     updateAuthoritativeStock(nextStock) {
       if (!Number.isSafeInteger(nextStock) || nextStock < 0) throw new TypeError('Invalid stock');
@@ -38,10 +39,10 @@ export function createClaimController({ dropId, initialStock, claimService, crea
     },
     async claim() {
       // Lock before any async boundary, including ID generation and service invocation.
-      if (active || baseStock <= 0 || !canClaim()) return false;
+      if (active || (!unresolvedClaim && (baseStock <= 0 || !canClaim()))) return false;
       const token = { controller: new AbortController(), startRevision: revision };
       active = token;
-      publish('pending', 'Claiming…');
+      publish('pending', unresolvedClaim ? 'Checking previous claim…' : 'Claiming…');
       try {
         if (!unresolvedClaim) {
           const claimId = createClaimId();
@@ -66,7 +67,7 @@ export function createClaimController({ dropId, initialStock, claimService, crea
         if (conflict && revision === token.startRevision) applyServerStock(error.remainingStock);
         if (conflict) unresolvedClaim = null;
         active = null;
-        publish(conflict ? 'conflict' : 'error', conflict ? 'Claim unavailable. Stock has been updated.' : 'Claim failed. Please retry.');
+        publish(conflict ? 'conflict' : 'error', conflict ? 'Claim unavailable. Stock has been updated.' : 'Claim outcome unknown. Retry the same claim to confirm its result.');
         return false;
       }
     },

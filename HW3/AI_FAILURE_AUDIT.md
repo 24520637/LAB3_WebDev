@@ -215,3 +215,160 @@ large/dynamic feed behavior, multiple simultaneous component instances,
 mobile/contrast auditing and actual screen-reader interaction remain
 unverified. See Git history for the Phase D implementation, tests and audit
 commit.
+
+## Failure 02 — JSX runtime configuration leaves the integrated app blank
+
+**Reviewed:** 2026-11-10 after importing `HW3_PhaseE.zip`.
+
+**Severity:** Critical for this integrated UI: the entry point cannot mount.
+
+**Related implementation prompt:** Integrate the completed countdown, claim, leaderboard,
+and kill-feed features into the PUBG VN Arena.
+Follow the existing project architecture.
+Ensure responsive layout, accessibility, and consistent state.
+Do not introduce unrelated features.
+Run focused integration checks.
+
+**Affected files:** `src/main.jsx` and the JSX build/runtime configuration.
+Other JSX modules also rely on an automatic JSX runtime without importing a
+React namespace; fixing only the first reference is insufficient.
+
+### Original code and cause
+
+```jsx
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+// ...
+createRoot(element).render(<StrictMode><App /></StrictMode>);
+```
+
+The imported app uses JSX without a `React` binding and supplies Vite scripts
+but no automatic JSX runtime configuration or React build plugin. In the
+actual dev and production outputs, the classic JSX transform refers to
+`React`, which is not defined. This is a code/toolchain integration defect,
+not a dependency installation failure. Both test and build commands complete
+successfully without executing the mounted application.
+
+### Reproduction and actual browser evidence
+
+1. Install the dependencies declared in the imported manifest: `npm install`.
+2. Run `npm run dev -- --host 127.0.0.1 --port 5186 --strictPort`.
+3. Open the real application at `http://127.0.0.1:5186/`.
+4. Build with `npm run build`, then run
+   `npm run preview -- --host 127.0.0.1 --port 5187 --strictPort` and open it.
+
+Observed in the in-app browser, without a diagnostic harness or substituted
+components:
+
+```text
+Development:
+  ReferenceError: React is not defined
+  at /src/main.jsx:6:44
+  main elements: 0; #root text: empty
+
+Production preview:
+  ReferenceError: React is not defined
+  at /assets/index-eZ1sRY2X.js:9:65246
+  main elements: 0; #root text: empty
+```
+
+The document title loads, but neither the arena, claim cards nor standings/
+feed controls render. The failure blocks integrated UI interaction and
+responsive/focus inspection; a successful bundle is not runtime proof.
+
+### Smallest appropriate correction
+
+Configure the existing Vite toolchain to use React's automatic JSX runtime
+consistently for development and production, for example through an explicit
+Vite esbuild JSX configuration. A separate React plugin is not technically
+required for this minimal fix. Do not import the Lab 2 custom renderer or
+patch only main.jsx while leaving other JSX modules with the same mismatch.
+Then rerun tests/build and smoke-test both real entry points before checking
+claims, expiry, filtering, keyboard behavior and actual viewport layout.
+
+### Repair and actual browser retest — 2026-11-10
+
+**Status:** Repaired and retested. See Git history for the Phase E integration
+and JSX runtime fix.
+
+Added `vite.config.js` using the existing Vite installation:
+
+```js
+export default defineConfig({
+  esbuild: { jsx: 'automatic', jsxImportSource: 'react' },
+});
+```
+
+This applies the React automatic runtime to JSX consistently in dev and build;
+no additional dependency was introduced for the fix. The dev server was
+restarted to load the newly added configuration. No JSX component was patched
+with a global React variable or custom renderer.
+
+Checks actually executed after the fix:
+
+- `npm test`: **47 passed, 0 failed, 0 skipped**.
+- `npm run build`: **passed**, Vite 7.3.8, 42 modules transformed.
+- Real dev entry and rebuilt production preview both rendered the arena,
+  two claim cards, four squad rows and four feed events. The fresh production
+  browser run's warning/error log was empty.
+- Production VIP claim changed stock 12 -> 11; Space activation on G-Coin
+  changed its stock 20 -> 19 independently. Eleven further VIP activations
+  reached stock 0, displayed LOOTED_OUT and disabled that claim button.
+- Integrated squad search ` cErBeRus ` returned Cerberus Esports; selecting
+  feed squad ge returned the Roy event. Clearing filters restored the lists.
+- Native Tab exposed the skip link at x/y 16/16. Enter followed by Tab reached
+  the first claim button with a visible yellow outline. At mobile width, the
+  focused select had a visible outline and bounds y=463..505 within the
+  812px-high viewport. This is a sampled keyboard/focus check, not a complete
+  accessibility audit.
+- Actual browser viewport measurements:
+
+| Viewport width | Document clientWidth | Document scrollWidth | Layout |
+| --- | --- | --- | --- |
+| 375px | 360 | 360 | One card column |
+| 768px | 753 | 753 | Two card columns |
+| 1280px | 1265 | 1265 | Two card columns |
+
+The document measurements account for the browser's scrollbar. No page-level
+horizontal overflow was observed. The mobile standings container had its own
+intentional horizontal scroll (clientWidth 327, scrollWidth 343). Temporary
+viewport overrides were reset after testing.
+
+A temporary page loaded the real `/src/main.jsx`, advanced its local Date.now
+by sixteen minutes and dispatched a visible wake. The actual App displayed
+00:00, Drop expired and EXPIRED on both cards, with both new-claim buttons
+disabled and stock unchanged at 12/20. This was clock/event simulation, not a
+physical background-tab wait. The diagnostic was removed afterward.
+
+Production 409/network-loss UI, real backend consistency, screen-reader speech,
+full contrast/zoom/reduced-motion auditing and all focus targets remain beyond
+this retest. Earlier controller/component checks remain separately scoped.
+
+## Phase E import verification before the JSX repair — 2026-11-10
+
+- Imported nine new/changed code/test/manifest files: App, React entry point,
+  CSS, claim card/controller, arena demo fixtures, index.html, arena tests and
+  package.json. Preserved existing rules, task plan and audit; did not copy
+  `PHASE_D_NOTES.md`, `INTEGRATION_NOTES.md` or replace this audit with the ZIP's
+  version. No additional documentation file was created.
+- Installed only manifest-declared React/React DOM/Vite dependencies:
+  `npm install` added 17 packages and reported 0 vulnerabilities. Generated
+  package-lock.json and a .gitignore for node_modules/dist/.vite. These install
+  results are not a general security or compatibility certification.
+- `npm test`: **47 passed, 0 failed, 0 skipped**. Five new arena integration
+  tests compose pure/controller modules; they do not mount App or exercise JSX
+  runtime behavior. Earlier tests include the Phase C retry regressions.
+- `npm run build`: **passed**, Vite 7.3.8, 37 modules transformed.
+- Browser dev and production preview: **failed to mount**, as in Failure 02.
+- The updated claim controller retains the prior logical retry ID and now
+  exposes unresolved state so a previous operation may be retried despite zero
+  stock/expired phase. This path passed the supplied module-level test; it
+  has not been verified through the integrated browser app.
+- Actual 375px/768px/desktop layout, visible focus, complete claim/sold-out/
+  expiry flows, filtering in the integrated UI, screen-reader behavior and
+  countdown wake through this entry point remain unverified because mounting
+  fails. CSS inspection alone is not responsive verification.
+- Two distinct application defects have now been evidenced in this audit:
+  Failure 01 repaired within its documented controller scope; Failure 02 was
+  open at this initial check and was subsequently repaired as recorded above.
+  No third defect is invented to meet the assignment's quota.
