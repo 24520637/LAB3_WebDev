@@ -1,10 +1,11 @@
 {
-  "name": "pubg-arena-phase-b",
+  "name": "pubg-arena-phase-c",
   "private": true,
   "type": "module",
   "scripts": {
     "test:clock": "node --test tests/airdropClock.test.mjs",
     "test:hook-harness": "node --test tests/usePubgAirdropTimer.harness.test.mjs",
+    "test:claim": "node --test tests/claim.test.mjs",
     "test": "node --test tests/*.test.mjs"
   }
 }
