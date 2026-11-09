@@ -96,3 +96,10 @@ body {
   background: #444;
   border-color: #fff;
 }
+
+/* T-09: visible error feedback; no hit-history or meter UI yet. */
+.audio-error {
+  margin-top: 1rem;
+  color: #ffd6b5;
+  font-size: 0.95rem;
+}

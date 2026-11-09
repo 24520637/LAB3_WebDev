@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>T09 verification fixture</title></head><body><aside><h2>Test instrumentation (not application UI)</h2><button id="release">Finish delayed Kick request</button><output id="loaded">Waiting for preload</output><pre id="starts">Successful audio starts: 0</pre></aside><div id="root"></div><script type="module">
+import { AudioEngine } from '/src/audio/audioEngine.js';
+let release;const gate=new Promise(resolve=>release=resolve);document.getElementById('release').addEventListener('click',release);
+const actualFetch=globalThis.fetch.bind(globalThis);globalThis.fetch=(url,opts)=>String(url).endsWith('/kick.wav')?gate.then(()=>actualFetch(url,opts)):actualFetch(url,opts);
+const originalPreload=AudioEngine.prototype.preload;AudioEngine.prototype.preload=async function(map){const result=await originalPreload.call(this,map);if(!this.disposed)document.getElementById('loaded').textContent='Decoded '+result.loaded.length+'/7; failed: '+result.failed.join(',')+'; context: '+this.context.state;return result;};
+let starts=[];const originalPlay=AudioEngine.prototype.play;AudioEngine.prototype.play=function(id){const node=originalPlay.call(this,id);if(node){starts.push(id);document.getElementById('starts').textContent='Successful audio starts: '+starts.length+'; sounds: '+starts.join(', ');}return node;};
+await import('/src/main.jsx');
+</script></body></html>

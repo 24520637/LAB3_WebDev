@@ -3,15 +3,18 @@ import { DRUM_PADS } from '../data/pads.js';
 import { drumReducer, initialDrumState } from '../state/drumState.js';
 import { useDrumKeyboard } from '../hooks/useDrumKeyboard.js';
 import DrumPad from './DrumPad.jsx';
+import { useDrumAudio } from '../hooks/useDrumAudio.js';
 
 /** Buttons and physical keys share one hit-processing pathway. */
 export default function DrumKit() {
   const [drumState, dispatch] = useReducer(drumReducer, initialDrumState);
+  const { playPad, audioError } = useDrumAudio();
   const padMap = useMemo(() => new Map(DRUM_PADS.map((pad) => [pad.code, pad])), []);
 
   const onHit = useCallback((padId, activate = true) => {
     dispatch({ type: 'HIT', padId, activate });
-  }, []);
+    playPad(padId);
+  }, [playPad]);
   const onActiveChange = useCallback((padId) => {
     dispatch({ type: 'SET_ACTIVE', padId });
   }, []);
@@ -49,6 +52,7 @@ export default function DrumKit() {
           />
         ))}
       </div>
+      {audioError && <p role="status" className="audio-error">{audioError}</p>}
     </section>
   );
 }
