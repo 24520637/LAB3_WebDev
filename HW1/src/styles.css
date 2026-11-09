@@ -1,5 +1,4 @@
 /* Retain the legacy dark studio palette, three-column grid, and focus treatment. */
-
 *,
 *::before,
 *::after {
@@ -90,4 +89,10 @@ body {
     min-height: 100px;
     padding: 0.5rem;
   }
+}
+
+/* T-05: state-driven visual indicator; pressed-state semantics follow in T-08. */
+.drum-pad.is-active {
+  background: #444;
+  border-color: #fff;
 }
