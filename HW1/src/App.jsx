@@ -1,3 +1,5 @@
+import DrumKit from './components/DrumKit.jsx';
+
 export default function App() {
   return (
     <main className="studio-shell">
@@ -5,6 +7,7 @@ export default function App() {
         <h1>Production Studio Drum Kit</h1>
         <p>Seven-pad studio foundation</p>
       </header>
+      <DrumKit />
     </main>
   );
 }

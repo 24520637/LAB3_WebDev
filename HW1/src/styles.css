@@ -1,4 +1,4 @@
-/* T-02: minimal shell; preserve the legacy drum pad CSS in its original repository. */
+/* Retain the legacy dark studio palette, three-column grid, and focus treatment. */
 
 *,
 *::before,
@@ -21,8 +21,73 @@ body {
 .studio-shell {
   width: min(100%, 760px);
   margin: 3rem auto;
+  text-align: center;
 }
 
 .studio-shell h1 {
   margin: 0 0 1rem;
+}
+
+.drum-pad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.drum-pad {
+  min-width: 0;
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 2px solid #555;
+  border-radius: 0.75rem;
+  background: #222;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.drum-pad kbd {
+  font: inherit;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.drum-pad span {
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.drum-pad:hover {
+  background: #333;
+}
+
+.drum-pad:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+.drum-pad:active {
+  transform: scale(0.97);
+  background: #444;
+}
+
+@media (max-width: 560px) {
+  .studio-shell {
+    margin: 1.5rem auto;
+  }
+
+  .drum-pad-grid {
+    gap: 0.65rem;
+  }
+
+  .drum-pad {
+    min-height: 100px;
+    padding: 0.5rem;
+  }
 }
