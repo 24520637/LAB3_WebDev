@@ -165,3 +165,53 @@ historical and describes the pre-repair import check.
   Full arena UI, a real HTTP service, distributed stock consistency, mobile/
   contrast auditing, real screen-reader behavior and physical tab-switch tests
   remain unverified.
+
+## Phase D import and verification — 2026-11-09
+
+Imported eight new code/test files from `HW3_PhaseD.zip`: leaderboard and
+kill-feed components, their two pure selectors, two demo-data modules and two
+test files. The Phase C controller, service, hook and regression tests matched
+the existing repaired versions and were preserved. Existing project rules,
+task plan, package manifest and this audit were retained. `PHASE_D_NOTES.md`
+was not added, following the user's no-new-document preference. No dependency
+installation or further application fix was performed.
+
+### Checks actually executed
+
+- `npm test`: **42 passed, 0 failed, 0 skipped**. The 13 new tests cover squad
+  identities, trimmed/case-insensitive search, all three metric/direction sorts,
+  immutable frozen inputs, deterministic ties, empty results, event order,
+  combined filters, duplicate IDs and invalid numeric values. The existing
+  claim idempotency regressions also passed. These are unit/harness tests,
+  not mounted component integration tests.
+- A temporary browser page mounted the actual `PubgLeaderboard` and
+  `PubgKillFeed` together under React StrictMode. It reused already installed
+  workspace React/Vite without adding dependencies or a permanent scaffold.
+- Initial UI: four squads with the required `te`, `ces`, `ge`, `agg` names
+  (including `ge` = Roy Esports), four events, and visible notices that both
+  datasets are illustrative/simulated rather than live results.
+- Leaderboard search ` cErBeRus ` returned only Cerberus Esports; unmatched
+  search displayed the empty state. Clearing search restored all four rows.
+  Kill-point ascending order was AGG, Roy Esports, Cerberus Esports,
+  The Expendables. Placement-point and WWCD descending controls restored
+  The Expendables, Cerberus Esports, Roy Esports, AGG.
+- Feed search ` roy ` returned Roy -> TE and AGG -> Roy events. Adding squad
+  `ge` narrowed this to the Roy event. Adding KNOCK produced the empty state.
+  With other filters cleared, KNOCK returned only CES -> AGG. Resetting all
+  filters restored four events in visible newest-first order.
+- The six native search/select controls had associated labels with distinct
+  generated IDs. No duplicate IDs were found in this single-pair mount.
+  Browser warning/error logs were empty. This is not a complete accessibility
+  audit or a screen-reader speech test.
+
+No new application defect was confirmed in these tested paths. The four-event
+feed uses an ordinary semantic list; no virtual scroller or large-feed
+performance claim is made. Temporary browser diagnostics and generated caches
+were removed after testing.
+
+There is still no application entry or build script, so no production build
+was run or claimed. Full arena composition, real match data/backend services,
+large/dynamic feed behavior, multiple simultaneous component instances,
+mobile/contrast auditing and actual screen-reader interaction remain
+unverified. See Git history for the Phase D implementation, tests and audit
+commit.
