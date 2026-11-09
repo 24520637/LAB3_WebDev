@@ -13,7 +13,8 @@ export const PianoKeyboard = memo(function PianoKeyboard({
       <h2 id="keyboard-heading">88-key keyboard</h2>
       <p className="keyboard-help" id="keyboard-help">
         Scroll horizontally to explore all 88 keys. Tab to focus a key, then hold
-        Space or Enter to press it. Audio playback is not part of this phase.
+        Space or Enter to press it. Pointer and multi-touch notes are supported.
+        No sound is produced in this phase.
       </p>
       <div className="keyboard-scroll" role="region" aria-label="Scrollable piano keyboard">
         <div className="keyboard" aria-describedby="keyboard-help">

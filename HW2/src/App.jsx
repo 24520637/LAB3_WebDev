@@ -34,9 +34,9 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <p className="eyebrow">HW2 · Phase B</p>
+        <p className="eyebrow">HW2 · Phase C</p>
         <h1>88-Key Polyphonic Piano</h1>
-        <p>Algorithmic MIDI keyboard foundation — sound engine and FIFO sequencer come in later phases.</p>
+        <p>Memoized 88-key piano with reliable pointer and keyboard controls. Sound and sequencing are not implemented yet.</p>
       </header>
       <PianoKeyboard pressedNotes={pressedNotes} onNoteOn={onNoteOn} onNoteOff={onNoteOff} />
       <section className="status-panel" aria-label="Keyboard information">

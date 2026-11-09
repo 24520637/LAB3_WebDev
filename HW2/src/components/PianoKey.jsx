@@ -1,8 +1,9 @@
 import { memo, useEffect, useRef } from 'react';
+import { createPianoKeyInteraction } from './pianoKeyInteraction.js';
 
 /**
- * Foundation-only visual note control. Real sound is introduced in Phase C.
- * One held pointer or keyboard activation per key; all release paths converge.
+ * One memoized, independently controlled note. Parent callbacks and primitive
+ * note descriptors must remain stable for React.memo to isolate all 88 keys.
  */
 export const PianoKey = memo(function PianoKey({
   midi,
@@ -13,57 +14,87 @@ export const PianoKey = memo(function PianoKey({
   onNoteOn,
   onNoteOff,
 }) {
-  const heldRef = useRef(false);
-  const pointerIdRef = useRef(null);
+  // The controller is persistent; its callbacks always call the latest props.
+  const callbacksRef = useRef({ onNoteOn, onNoteOff });
+  callbacksRef.current = { onNoteOn, onNoteOff };
+  const inputRef = useRef(null);
+  const clickTimerRef = useRef(null);
+  if (inputRef.current === null) {
+    inputRef.current = createPianoKeyInteraction(
+      () => callbacksRef.current.onNoteOn(midi),
+      () => callbacksRef.current.onNoteOff(midi),
+    );
+  }
 
-  // Parent may clear all pressed keys after window blur without a keyup.
-  // Reconcile the local guard so the next deliberate press is accepted.
+  // A window-level reset (or a future audio-engine voice steal) can clear the
+  // parent's pressed state. Keep local input guards consistent with that reset.
   useEffect(() => {
-    if (!isPressed) {
-      heldRef.current = false;
-      pointerIdRef.current = null;
-    }
+    if (!isPressed && inputRef.current.isHeld) inputRef.current.resetSilently();
   }, [isPressed]);
 
-  function press() {
-    if (heldRef.current) return;
-    heldRef.current = true;
-    onNoteOn(midi);
-  }
+  useEffect(() => () => {
+    if (clickTimerRef.current !== null) clearTimeout(clickTimerRef.current);
+    inputRef.current.releaseAll();
+  }, []);
 
-  function release() {
-    if (!heldRef.current) return;
-    heldRef.current = false;
-    pointerIdRef.current = null;
-    onNoteOff(midi);
-  }
+  useEffect(() => {
+    // Only currently held keys attach listeners; 88 idle keys add no listeners.
+    if (!isPressed) return undefined;
+    const release = () => inputRef.current.releaseAll();
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') release();
+    };
+    window.addEventListener('blur', release);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('blur', release);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [isPressed]);
 
   function handlePointerDown(event) {
-    if (!event.isPrimary || event.button !== 0) return;
-    // Don't treat touch scrolling as a click; capture the pointer while held.
-    pointerIdRef.current = event.pointerId;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    press();
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (event.pointerType === 'pen' && event.button !== 0) return;
+    // Touch pointers may be non-primary: they are necessary for multi-key chords.
+    if (!inputRef.current.pointerDown(event.pointerId)) return;
+    try { event.currentTarget.setPointerCapture?.(event.pointerId); } catch { /* capture not available */ }
   }
 
-  function handlePointerUp(event) {
-    if (pointerIdRef.current !== event.pointerId) return;
-    release();
-    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
+  function handlePointerEnd(event) {
+    inputRef.current.pointerUp(event.pointerId);
+    try {
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    } catch { /* pointer is already released */ }
+  }
+
+  function handleClick(event) {
+    // Pointer-origin clicks were handled on pointerdown/pointerup. Click-only
+    // activations (including assistive technology and element.click()) still
+    // need a visible note-on AND a later note-off, not a batched zero-duration flash.
+    if (!inputRef.current.clickDown({
+      detail: event.detail,
+      pointerId: event.nativeEvent.pointerId,
+    })) return;
+    if (clickTimerRef.current !== null) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      clickTimerRef.current = null;
+      inputRef.current.clickUp();
+    }, 120);
   }
 
   function handleKeyDown(event) {
     if (event.key !== ' ' && event.key !== 'Enter') return;
+    // Suppress browser synthesis of an extra click and keyboard page scrolling.
     event.preventDefault();
-    if (!event.repeat) press();
+    if (!event.repeat) inputRef.current.keyboardDown(event.key);
   }
 
   function handleKeyUp(event) {
     if (event.key !== ' ' && event.key !== 'Enter') return;
     event.preventDefault();
-    release();
+    inputRef.current.keyboardUp(event.key);
   }
 
   return (
@@ -75,12 +106,13 @@ export const PianoKey = memo(function PianoKey({
       aria-pressed={isPressed}
       data-midi={midi}
       onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={release}
-      onLostPointerCapture={release}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+      onLostPointerCapture={handlePointerEnd}
+      onClick={handleClick}
       onKeyDown={handleKeyDown}
       onKeyUp={handleKeyUp}
-      onBlur={release}
+      onBlur={() => inputRef.current.releaseAll()}
     >
       <span aria-hidden="true" className="piano-key__label">{noteName}</span>
     </button>
