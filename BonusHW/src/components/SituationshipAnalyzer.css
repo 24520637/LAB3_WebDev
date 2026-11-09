@@ -1,0 +1,169 @@
+.situationship {
+  box-sizing: border-box;
+  width: min(100%, 900px);
+  margin-inline: auto;
+  padding: clamp(1rem, 3vw, 2rem);
+  color: #172535;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  overflow-wrap: anywhere;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+.situationship *,
+.situationship *::before,
+.situationship *::after {
+  box-sizing: border-box;
+}
+
+.situationship__header h1 {
+  margin-block: 0.25rem 1rem;
+  font-size: clamp(1.45rem, 5vw, 2rem);
+}
+
+.situationship__eyebrow {
+  margin: 0;
+  color: #475569;
+  font-weight: 700;
+}
+
+.situationship__section {
+  padding-block: 1.25rem;
+  border-top: 1px solid #cbd5e1;
+}
+
+.situationship__section h2 {
+  margin-top: 0;
+  font-size: 1.15rem;
+}
+
+.situationship__efforts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.situationship__efforts form {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.situationship label {
+  font-weight: 600;
+}
+
+.situationship input,
+.situationship button {
+  max-width: 100%;
+  min-width: 0;
+  font: inherit;
+}
+
+.situationship input {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid #64748b;
+  border-radius: 0.5rem;
+}
+
+.situationship button {
+  padding: 0.7rem 0.85rem;
+  color: #172535;
+  background: #fff;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.situationship button:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.situationship button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.situationship :is(button, input):focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 3px;
+}
+
+.situationship__scores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.situationship__scores > div {
+  min-width: 0;
+  padding: 0.75rem;
+  background: #f1f5f9;
+  border-radius: 0.5rem;
+}
+
+.situationship__scores dt {
+  font-size: 0.9rem;
+}
+
+.situationship__scores dd {
+  margin: 0.2rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 750;
+}
+
+.situationship__warning,
+.situationship__safe {
+  display: block;
+  padding: 0.85rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+.situationship__warning {
+  color: #7f1d1d;
+  background: #fef2f2;
+  border: 1px solid #b91c1c;
+}
+
+.situationship__safe {
+  color: #14532d;
+  background: #f0fdf4;
+  border: 1px solid #15803d;
+}
+
+.situationship__error {
+  color: #9f1239;
+  font-weight: 600;
+}
+
+.situationship__countdown {
+  font-variant-numeric: tabular-nums;
+}
+
+.situationship__actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+}
+
+@media (min-width: 680px) {
+  .situationship__efforts,
+  .situationship__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .situationship *,
+  .situationship *::before,
+  .situationship *::after {
+    scroll-behavior: auto;
+    transition: none;
+    animation: none;
+  }
+}
