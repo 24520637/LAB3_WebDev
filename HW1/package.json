@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "test:unit": "node --test tests/pads.test.mjs tests/drumState.test.mjs tests/drumKeyboard.test.mjs tests/hitHistory.test.mjs tests/audio.test.mjs tests/audioLevel.test.mjs",
+    "test:integration": "node --test tests/react.integration.test.mjs"
   },
   "dependencies": {
     "react": "19.3.1",
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "6.1.2",
+    "jsdom": "31.0.0",
     "vite": "8.3.5"
   }
 }
