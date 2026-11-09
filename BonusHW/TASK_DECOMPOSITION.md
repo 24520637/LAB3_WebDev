@@ -1,12 +1,12 @@
 # TASK DECOMPOSITION — Bonus Exercise: Hẹn Hò Nhưng Không Yêu State Machine
 
-**Status:** Phase 1 domain implemented and tested · 2026-11-10. No React UI, derived-score view, or ghosting timer has been implemented.
+**Status:** Phase 1 domain and Phase 2 effort analysis implemented · 2026-11-10. A read-only React analysis component exists; the full interactive UI and ghosting timer remain unimplemented.
 
 ## 0. Repository evidence and reuse decision
 
 **Verified workspace:** Repository root is `LAB3_WebDev`. `BonusHW` contains this document and `PROJECT_RULES.md`; the user-provided `BonusExercise_Phase1.zip` supplies a Node ESM package manifest, Phase 1 domain modules, and tests. The checkout also contains `LAB2_Exercises` and several independent React 19/Vite projects. None of those React applications is a confirmed Bonus host.
 
-**P0 inspection:** The root worktree was already dirty before implementation. Preserve all unrelated changes. No Bonus React entry point, component, styles, or existing Bonus tests were present. The Bonus package uses Node's built-in test runner and does not add dependencies. `src/components/SituationshipAnalyzer.jsx` and `hen-ho-khong-yeu-spec.ts` remain proposed names only.
+**P0 inspection:** The root worktree was already dirty before implementation. Preserve all unrelated changes. No Bonus React entry point, app shell, styles, or existing Bonus tests were present. The Bonus package uses Node's built-in test runner and has no React dependency; the Phase 2 `EffortAnalysis` component is intended for integration into a confirmed React host. No dependencies were installed. `src/components/SituationshipAnalyzer.jsx` and `hen-ho-khong-yeu-spec.ts` remain proposed names only.
 
 ## 1. Contract and design decisions
 
@@ -23,7 +23,7 @@
 | **P0 · T-01** | Inspect actual Lab 2 and target React checkout, project rules, scripts, relevant hooks/components, timers, tests, and Git state; document reuse/replace choices. | None | **Done:** Real workspace and existing project/test conventions inspected. No confirmed Bonus React host. |
 | **P1 · T-02** | Implement pure relationship FSM contract (constants/actions/transition guards) using current architecture. | T-01 | **Done:** Phase 1 transitions, terminal exit, and invalid input behavior covered by tests. |
 | **P1 · T-03** | Add immutable effort action log and pure reducer; use stable signal IDs. | T-01 | **Done:** Validated append-only records, duplicate-ID rejection, immutability, and numeric bounds covered by tests. |
-| **P2 · T-04** | Derive `emScore`, `rivalScore`, and red-flag warning directly from logs + phase; present basic readable output. | T-02, T-03 | Example computes `10` vs `50`, warning appears only when required; no redundant `useEffect`/stored derived totals. |
+| **P2 · T-04** | Derive `emScore`, `rivalScore`, and red-flag warning directly from logs + phase; present basic readable output. | T-02, T-03 | **Done:** Pure selectors and a read-only semantic React component added; empty/fixture/strict-comparison/overflow cases covered by tests. Component integration into a host app is not verified. |
 | **P3 · T-05** | Define send/reply/pending message state and 5-second ghosting effect following actual React conventions. | T-02 | One active timer per pending message; reply before deadline prevents exit; unanswered message exits once at 5 seconds; input edits do not reset deadline. |
 | **P3 · T-06** | Implement cancellation and resource cleanup for Stop, phase change, replacement, unmount, and React StrictMode. | T-05 | Cleanup clears timers, aborts signal-aware work, excludes stale callbacks; no false ghosting after cancellation; no manual-GC claim. |
 | **P4 · T-07** | Complete accessible interactive analyzer: phase indicator, effort controls, send/reply/Stop buttons, derived status. | T-04, T-06 | `useId()` ties labels to inputs; native keyboard activation, visible focus, safe disabled states; `<output role="status" aria-live="polite">` announces changes without noisy repetition. |
@@ -43,7 +43,7 @@
 | Lifecycle | Unmount and React StrictMode setup/cleanup cycles; aborted work does not change state or announce false warning | React integration harness with spies on relevant timer/abort behavior, coupled to observable UI results. |
 | Accessibility / responsive | Label association, Tab/Enter/Space, live status, visible focus; 375px and wider viewport | Automated DOM tests if configured + manual browser/screen-reader checks; do not equate jsdom with visual or full WCAG validation. |
 
-**Verified:** `cd BonusHW && npm test` (PowerShell equivalent: `Push-Location BonusHW; npm test; Pop-Location`) passed all 8 Phase 1 tests using Node's built-in test runner. No dependencies were installed. A first invocation from the repository root failed because that directory has no `test` script; it was rerun successfully from `BonusHW` and was not an application defect. No UI, timer, responsive, or accessibility checks have been run.
+**Verified:** `cd BonusHW && npm test` (PowerShell equivalent: `Push-Location BonusHW; npm test; Pop-Location`) passed all 14 Phase 1 and Phase 2 domain tests using Node's built-in test runner. The `EffortAnalysis.jsx` file parsed with the already-installed Babel JSX parser; no dependencies were installed. The React component has not been rendered or bundled because Bonus has no React host/dependency setup. No timer, responsive, or browser accessibility checks have been run.
 
 ## 4. Risks and controls
 
