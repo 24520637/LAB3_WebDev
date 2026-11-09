@@ -38,3 +38,7 @@ button { font: inherit; }
 .recording-scroll { max-width: 100%; overflow-x: auto; }
 .recording-scroll table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 .recording-scroll th, .recording-scroll td { border-bottom: 1px solid #47586b; text-align: left; padding: 6px 9px; }
+.playback-controls { align-items: center; margin-top: 12px; }
+.playback-controls label { font-weight: 600; }
+.playback-controls select { padding: 9px; border-radius: 6px; background: #f1f5f9; color: #101923; }
+.playback-controls select:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }

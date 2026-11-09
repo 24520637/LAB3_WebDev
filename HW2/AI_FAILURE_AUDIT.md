@@ -403,3 +403,186 @@ Nonzero analyser output proves a generated signal, not sound quality at the
 physical output device. Phase D responsive layout was not re-audited at mobile
 and tablet viewports. Playback, speed selection and AudioTaskQueue are absent
 from this archive and were not tested or represented as implemented.
+
+## Failure 04 — Browser timer receiver prevents sequence playback
+
+**Reviewed:** 2026-11-09 after importing
+`HW2_PhaseE_FIFO_Sequencer_Playback.zip`.
+
+**Severity:** High — the tested recorded sequence cannot be replayed at any
+supported speed.
+
+**Related generation prompt supplied by the user:**
+
+```text
+Phase E - FIFO Sequencer & Playback, Read TASK_DECOMPOSITION.md , Implement the concurrent FIFO sequencer.
+Replay recorded notes in FIFO order at 0.5x, 1x, and 2x speed.
+Preserve the original timing and overlapping notes.
+Use one playback coordinator.
+Do not serialize overlapping notes into sequential playback.
+```
+
+This records the user's attribution to the generated implementation; it does
+not establish that the prompt itself is technically incorrect.
+
+**Affected file:** `src/sequencer/SequencePlayer.js`, constructor and
+`processStarts` (line 121 in the imported file); related timer calls also use
+the same stored functions.
+
+### Original code and cause
+
+```js
+constructor({ synth, now = () => performance.now(), setTimer = setTimeout,
+  clearTimer = clearTimeout, /* ... */ } = {}) {
+  // ...
+  this.setTimer = setTimer;
+  this.clearTimer = clearTimer;
+}
+// ...
+run.nextTimer = this.setTimer(processStarts,
+  Math.max(0, run.epoch + notes[run.index].onset - this.now()));
+```
+
+The default browser Window timer is stored unchanged and invoked as a
+SequencePlayer method. In the tested browser its receiver is the player,
+rather than Window; the call throws `TypeError: Illegal invocation`.
+The supplied sequence tests inject ordinary fake timer functions, which do
+not enforce the browser receiver and therefore do not detect this defect.
+This is an application-code integration error, not a dependency, startup or
+verification-script failure.
+
+### Reproduction and actual browser evidence
+
+1. Open HW2, Start recording, and play/release C4, E4 and G4 with overlapping
+   durations and a nonzero initial delay. Stop recording.
+2. Select 1× and press Play sequence.
+3. Repeat with 0.5× and 2×.
+
+A temporary diagnostic mounted the unchanged actual App with StrictMode and
+the existing stylesheet. It retained native Web Audio and delegated to the
+original synth/player methods, observing their returns and completion promise.
+A genuine diagnostic-button activation started a timed synthetic-pointer
+recording through the existing React controls; playback used the real Play
+sequence button. The recorded table contained:
+
+| Note | MIDI | Frequency (Hz) | Duration (ms) | Delta (ms) |
+| --- | --- | --- | --- | --- |
+| C4 | 60 | 261.63 | 1509 | 205 |
+| E4 | 64 | 329.63 | 403 | 207 |
+| G4 | 67 | 392.00 | 343 | 102 |
+
+Two 1× runs and one run at each other speed all finished with `status: error`,
+before any playback note-on was observed. The completion error included:
+
+```text
+TypeError: Illegal invocation
+    at processStarts (.../src/sequencer/SequencePlayer.js:121:27)
+    at SequencePlayer.play (.../src/sequencer/SequencePlayer.js:128:3)
+```
+
+The UI displayed `3 notes recorded. Playback: error.` and the accessible alert
+`The sequence could not be played.`. Stop sequence was disabled after the
+failure. The diagnostic observed one running context, no owned/pressed notes
+after failure, and a disposed synth with no voices after App unmount.
+The temporary diagnostic was removed after verification.
+
+### Smallest proposed correction
+
+Wrap default timer operations in functions that call
+`globalThis.setTimeout(callback, delay)` and `globalThis.clearTimeout(handle)`
+with the correct global receiver, while preserving injected timer support.
+Do not change FIFO/overlap scheduling merely to bypass this exception.
+Retest real-browser playback at all speeds, Stop before/while notes play,
+repeated Play, and unmount during active playback; retain deterministic timing
+tests and add browser integration coverage for the default timers.
+
+### Repair and regression retest — 2026-11-09
+
+**Status:** Repaired and verified. See Git history for the commit containing
+the timer repair, regression test and this audit update.
+The original import/test task left the source unchanged; the user then
+explicitly requested this repair and provided the prompt above.
+
+The constructor now wraps only its default timer operations:
+
+```js
+setTimer = (callback, delay) => globalThis.setTimeout(callback, delay),
+clearTimer = (handle) => globalThis.clearTimeout(handle),
+```
+
+The wrappers invoke browser timers with the global receiver. Injected timers,
+FIFO ordering, scaled deadlines, overlapping releases, AbortController and
+the single playback coordinator remain unchanged.
+
+The new regression test exercises the production default timer path, without
+passing injected timers to SequencePlayer. Its controlled global timer
+functions reject a receiver other than globalThis, reproducing the relevant
+browser constraint. It verifies delayed note-on/off completion, then Stop of
+a pending run, cancellation and the absence of an extra note start. This is a
+deterministic unit regression; the real-browser retest below is separate.
+
+- `npm test`: **37 passed, 0 failed, 0 skipped**.
+- `npm run build`: **passed**, 23 modules transformed.
+
+The actual App/StrictMode browser diagnostic was repeated with native browser
+timers and Web Audio, using the same method described above. A new recorded
+sample contained C4 (duration 1418 ms, initial delta 698 ms), E4 (duration
+402 ms, delta 115 ms), and G4 (duration 351 ms, delta 96 ms), rounded for display.
+The expected last deadline at 1× was therefore approximately 2116 ms.
+
+| Speed | Approximate expected completion | Measured completion | Result |
+| --- | --- | --- | --- |
+| 0.5× | 4232 ms | 4243 ms | completed |
+| 1× | 2116 ms | 2125 ms | completed |
+| 2× | 1058 ms | 1063 ms | completed |
+
+All three runs started C4, E4 and G4 in FIFO onset order, with all three starts
+before the first note-off. E4/G4 ended while the longer C4 remained active.
+The logs therefore demonstrate overlapping playback rather than serialized
+notes. Small differences reflect the observed browser timer scheduling; no
+sample-accurate or background-tab timing guarantee is claimed.
+
+Additional actual browser checks:
+
+- Stop before the first delayed note: stopped at approximately 311 ms;
+  no playback note started, including on a later diagnostic read past the
+  original sequence deadline.
+- Stop while C4/E4 were active: both received note-off, G4 did not start,
+  and voice/pressed counts returned to zero.
+- Repeated separate Play runs after completion and Stop succeeded, using one
+  observed AudioContext. Duplicate concurrent Play remains covered by its
+  existing unit test, not a new browser assertion.
+- Unmount during active three-note playback: playback resolved as stopped,
+  all owned notes were released, the synth became disposed and the observed
+  native AudioContext reached closed. A later diagnostic read showed no new
+  starts after Stop/unmount. Browser warning/error logs were empty.
+
+The temporary diagnostic was removed. Physical listening, screen-reader speech,
+hardware multitouch, background timer throttling, manual-versus-replay pitch
+ownership and React DevTools Profiler remain outside this retest. The default
+browser timer defect is repaired; these results are not full assignment or
+WCAG conformance evidence.
+
+## Phase E import verification before the timer repair — 2026-11-09
+
+- Imported four changed code/test files: `src/App.jsx`,
+  `src/styles/piano.css`, `src/sequencer/SequencePlayer.js` and
+  `tests/sequencePlayer.test.mjs`. Dependencies, lockfile and previously
+  repaired input modules were unchanged; no install was performed.
+- Preserved this audit and the project rules/task plan. Did not add the ZIP's
+  Phase D/E verification documents or README, per the user's no-new-document
+  instruction.
+- `npm test`: **36 passed, 0 failed, 0 skipped**. This includes nine new
+  sequence unit tests using a fake synth and deterministic timers: three speed
+  cases, duplicate Play, Stop, same-MIDI replacement, invalid input, empty/
+  dispose, and external voice ownership. These are not App integration tests.
+- `npm run build`: **passed**, 23 modules transformed.
+- Browser recording and table creation: passed for the three-note sample above.
+  Browser playback at 0.5×, 1× and 2×: **failed**, as recorded in Failure 04.
+- Stop during successful playback, audible overlap/speed accuracy, repeated
+  successful Play, unmount during active playback and manual-versus-sequence
+  note ownership remain **unverified** because the default timer path fails
+  before playback starts. Node unit passes are not evidence these browser
+  workflows work.
+- Physical listening, screen-reader speech, React DevTools Profiler and a new
+  responsive/accessibility audit were not performed in this Phase E check.
