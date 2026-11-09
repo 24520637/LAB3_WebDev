@@ -359,7 +359,10 @@ Report actual test results.
 ```
 
 **Attribution limitation:** The user supplied this as the related implementation
-prompt. Comparing every ZIP entry with the working HW1 files showed that
+prompt, and subsequently explicitly identified it as the error-causing prompt
+when requesting the correction for Failure 03. This records the user's
+attribution without claiming independent proof of the original generation.
+Comparing every ZIP entry with the working HW1 files showed that
 `HW1_T12.zip` changed only `src/styles.css`. The keyboard controller and
 `DrumPad.jsx` behavior in Findings 03 and 04 already existed before this
 import. These are existing application issues found during the post-T-12
@@ -425,11 +428,48 @@ The current implementation provides none of those alternatives. It can
 unexpectedly trigger hits for speech-input or keyboard users outside an
 editable field. Speech recognition itself was not tested.
 
-The smallest proposed correction is a clearly labelled native checkbox to
-enable/disable physical-key shortcuts, wired to the existing `isEnabled`
-argument of `useDrumKeyboard`. Native Enter/Space activation should continue
-working independently. This is a recommendation only; no application fix was
-made during this documentation request.
+### Engineering correction and retest — 2026-11-09
+
+Implemented a visible, labelled native checkbox, **Enable drum keyboard
+shortcuts (W, A, S, D, J, K, L)**, in `DrumKit.jsx`. It controls React state
+passed to the existing `isEnabled` argument of `useDrumKeyboard`. Disabling
+removes the physical-key listeners through the existing effect cleanup and
+clears the active physical pad, including a key that was held before disabling.
+Native button Enter/Space and pointer activation remain independent. The
+setting starts enabled to preserve existing behavior and is scoped to the
+current mount. No audio logic was changed.
+
+Added two mounted React integration regression tests in
+`tests/react.integration.test.mjs`. Both failed before the correction because
+the shortcut setting did not exist. After the correction they passed:
+
+- Disable the checkbox, focus a pad (not the checkbox), and send all seven
+  mapped keys: no history or playback. Pointer and native-button event
+  sequences still create one matching hit each.
+- Disable while a physical key is held: the active pad clears without a new
+  hit. Three enable/disable cycles produce one hit per enabled press and none
+  per disabled press, with no duplicate callbacks or stuck active state.
+
+**Actual production-browser retest:** Opened `http://127.0.0.1:5183/` after
+rebuilding. These actions used the in-app browser's keyboard/click controls,
+not jsdom's synthetic event sequences:
+
+1. Tab to the checked setting, press Space to uncheck it, and Tab to Kick.
+2. Press/release W, A, S, D, J, K and L. DOM readout:
+   `enabled: false; focus: Kick drum, key W; historyCount: 0; activeCount: 0`.
+   Focusing the pad ensures the input-isolation guard is not hiding a faulty
+   disabled setting.
+3. Press Enter and Space on Kick: two Kick history entries appeared.
+4. Click Snare: history count became 3.
+5. Re-enable the setting, Tab to Kick, and press/release W. DOM readout:
+   `enabled: true; focus: Kick drum, key W; historyCount: 4; activeCount: 0`.
+6. Captured browser warning/error logs: `[]`.
+
+`npm test` passed **81 tests, 0 failed, 0 skipped** (59 existing unit/module
+contracts and 22 mounted React integration tests). `npm run build` passed.
+The switchable-shortcut mechanism resolves the evidenced WCAG 2.1.4 issue;
+this does not establish full WCAG compliance. Actual screen-reader speech,
+speech recognition and UniKey behavior were not tested for this correction.
 
 ## Finding 04 — Momentary drum pads expose toggle-button semantics
 

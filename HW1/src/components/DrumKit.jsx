@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { DRUM_PADS } from '../data/pads.js';
 import { drumReducer, initialDrumState } from '../state/drumState.js';
 import { useDrumKeyboard } from '../hooks/useDrumKeyboard.js';
@@ -10,6 +10,7 @@ import { useDrumAudio } from '../hooks/useDrumAudio.js';
 /** Buttons and physical keys share one hit-processing pathway. */
 export default function DrumKit() {
   const [drumState, dispatch] = useReducer(drumReducer, initialDrumState);
+  const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
   const { playPad, audioError, dbfs } = useDrumAudio();
   const padMap = useMemo(() => new Map(DRUM_PADS.map((pad) => [pad.code, pad])), []);
 
@@ -35,10 +36,22 @@ export default function DrumKit() {
     return () => window.removeEventListener('blur', resetNativePress);
   }, []);
 
-  useDrumKeyboard(padMap, onHit, onActiveChange);
+  useDrumKeyboard(padMap, onHit, onActiveChange, shortcutsEnabled);
 
   return (
     <section className="drum-kit" aria-label="Drum pads">
+      <label className="shortcut-setting">
+        <input
+          type="checkbox"
+          checked={shortcutsEnabled}
+          onChange={(event) => {
+            setShortcutsEnabled(event.target.checked);
+            // Disabling must release a physical key even if keyup is never seen.
+            onActiveChange(null);
+          }}
+        />
+        Enable drum keyboard shortcuts (W, A, S, D, J, K, L)
+      </label>
       <div className="drum-pad-grid">
         {DRUM_PADS.map((pad) => (
           <DrumPad

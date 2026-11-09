@@ -280,3 +280,49 @@ test('integration: StrictMode unmount/remount removes old keyboard callbacks and
   assert.deepEqual(audio.startedSounds, ['snare']);
   assert.deepEqual(retiredAudio.startedSounds, ['kick']);
 });
+
+test('regression: disabling shortcuts blocks all seven physical keys while pointer and native button activation still work', async () => {
+  await mount();
+  const setting = container.querySelector('input[type="checkbox"]');
+  assert.ok(setting, 'a keyboard-accessible shortcut setting must exist');
+  assert.equal(setting.checked, true);
+  assert.match(setting.labels[0].textContent, /Enable drum keyboard shortcuts/);
+  await act(async () => setting.click());
+  assert.equal(setting.checked, false);
+  // Focus a pad, so the editable-input guard cannot conceal a broken toggle.
+  await act(async () => pad('kick').focus());
+  for (const item of DRUM_PADS) await physical(item.code);
+  assert.equal(entries().length, 0);
+  assert.deepEqual(audio.startedSounds, []);
+  assert.deepEqual(active(), []);
+  await pointerClick(pad('kick'));
+  await act(async () => {
+    key(window, pad('snare'), 'keydown', 'Enter', { key: 'Enter' });
+    pad('snare').click();
+    key(window, pad('snare'), 'keyup', 'Enter', { key: 'Enter' });
+  });
+  assert.deepEqual(labels(), ['Snare', 'Kick']);
+  assert.deepEqual(audio.startedSounds, ['kick', 'snare']);
+});
+
+test('regression: disabling a held shortcut releases its pad and re-enabling repeatedly never duplicates hits', async () => {
+  await mount();
+  const setting = container.querySelector('input[type="checkbox"]');
+  assert.ok(setting, 'a shortcut setting must exist');
+  await act(async () => key(window, window.document.body, 'keydown', 'KeyW'));
+  assert.deepEqual(active(), ['kick']);
+  await act(async () => setting.click());
+  assert.deepEqual(active(), []);
+  assert.equal(entries().length, 1, 'disable must not create a hit');
+  await act(async () => key(window, window.document.body, 'keyup', 'KeyW'));
+  for (let cycle = 0; cycle < 3; cycle++) {
+    await act(async () => { setting.click(); pad('kick').focus(); });
+    await physical('KeyW');
+    assert.equal(entries().length, cycle + 2);
+    assert.equal(audio.startedSounds.length, cycle + 2);
+    await act(async () => setting.click());
+    await physical('KeyW');
+    assert.equal(entries().length, cycle + 2);
+    assert.deepEqual(active(), []);
+  }
+});

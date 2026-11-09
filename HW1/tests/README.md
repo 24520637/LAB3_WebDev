@@ -70,9 +70,12 @@ Node ^22.22.2, ^24.15.0, or >=26.0.0; the recorded run used Node 26.8.2.
 - jsdom has no layout rendering. Responsive layout, zoom, contrast, reduced
   motion, accessibility-tree interoperability and WCAG conformance are not
   established by this suite. No Lighthouse score is inferred.
-- The accessibility issues previously recorded in `AI_FAILURE_AUDIT.md`
-  are outside this T-14 change. Passing these behavioral tests does not
-  resolve the shortcut-disable or momentary-button semantics findings.
+- The original T-14 tests did not resolve the accessibility issues in
+  `AI_FAILURE_AUDIT.md`. A subsequent Failure 03 correction added a native
+  shortcut-enable checkbox and two mounted regression tests: all seven keys
+  are blocked when disabled, native/pointer actions still work, held state
+  releases, and repeated re-enabling does not duplicate hits. The separate
+  momentary-button semantics finding is not resolved by these tests.
 
 ## Execution results
 
@@ -81,8 +84,8 @@ Executed on 2026-11-09, Windows, Node.js 26.8.2:
 | Command | Passed | Failed | Skipped | Result |
 |---|---:|---:|---:|---|
 | `npm run test:unit` | 59 | 0 | 0 | Passed (unit/module-contract group) |
-| `npm run test:integration` | 20 | 0 | 0 | Passed (mounted React DOM) |
-| `npm test` | 79 | 0 | 0 | Passed (both groups together) |
+| `npm run test:integration` | 22 | 0 | 0 | Passed (mounted React DOM, including Failure 03 regressions) |
+| `npm test` | 81 | 0 | 0 | Passed (both groups together) |
 | `npm run build` | — | — | — | Passed |
 
 During setup, the first integration attempt could not load a dependency
