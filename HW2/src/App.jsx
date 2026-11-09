@@ -14,6 +14,7 @@ export default function App() {
   const [recordedNotes, setRecordedNotes] = useState([]);
   const synthRef = useRef(null);
   const playerRef = useRef(null);
+  const mountedRef = useRef(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [playbackStatus, setPlaybackStatus] = useState('idle');
   const recorderRef = useRef(null);
@@ -95,12 +96,18 @@ export default function App() {
       if (!playerRef.current) {
         playerRef.current = new SequencePlayer({
           synth: synthRef.current,
-          onNoteStart: (midi) => setPressedNotes((old) => new Set(old).add(midi)),
-          onNoteEnd: (midi) => setPressedNotes((old) => {
+          onNoteStart: (midi) => {
+            if (mountedRef.current) setPressedNotes((old) => new Set(old).add(midi));
+          },
+          onNoteEnd: (midi) => {
+            if (!mountedRef.current) return;
+            setPressedNotes((old) => {
             if (synthRef.current?.voices.has(midi)) return old;
-            const next = new Set(old); next.delete(midi); return next;
-          }),
+              const next = new Set(old); next.delete(midi); return next;
+            });
+          },
           onStatusChange: (status, error) => {
+            if (!mountedRef.current) return;
             setPlaybackStatus(status);
             if (error) setAudioError('The sequence could not be played.');
           },
@@ -117,14 +124,23 @@ export default function App() {
     }
   }, [isRecording, recordedNotes, playbackSpeed, onStolen]);
 
-  const stopSequence = useCallback(() => playerRef.current?.stop(), []);
+  const stopSequence = useCallback(() => {
+    playerRef.current?.stop();
+    // Stop is an emergency silence action, including manually held keys.
+    synthRef.current?.allNotesOff();
+    for (const midi of pressedNotesRef.current) recorderRef.current.noteOff(midi);
+    pressedNotesRef.current = new Set();
+    if (mountedRef.current) setPressedNotes((old) => old.size ? new Set() : old);
+  }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     const releaseAll = () => {
+      playerRef.current?.stop();
       synthRef.current?.allNotesOff();
       for (const midi of pressedNotesRef.current) recorderRef.current.noteOff(midi);
       pressedNotesRef.current = new Set();
-      setPressedNotes((previous) => previous.size ? new Set() : previous);
+      if (mountedRef.current) setPressedNotes((previous) => previous.size ? new Set() : previous);
     };
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') releaseAll();
@@ -132,10 +148,13 @@ export default function App() {
     window.addEventListener('blur', releaseAll);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
+      mountedRef.current = false;
       window.removeEventListener('blur', releaseAll);
       document.removeEventListener('visibilitychange', onVisibility);
       playerRef.current?.dispose();
       playerRef.current = null;
+      recorderRef.current?.stop();
+      recorderRef.current?.clear();
       void synthRef.current?.dispose().catch(() => {});
       synthRef.current = null;
     };

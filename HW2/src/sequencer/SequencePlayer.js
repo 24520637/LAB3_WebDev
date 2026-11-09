@@ -1,100 +1,104 @@
-/** One playback coordinator. Note-on events are FIFO; note-offs have independent deadlines.
- * A single coordinator may own many simultaneous synth voices. No React dependency.
+/** One FIFO replay coordinator. Starts are ordered; independent note-off timers allow chords.
+ * AbortController owns each run; all timers and audio entries are cleaned on cancellation.
  */
 export class SequencePlayer {
   constructor({ synth, now = () => performance.now(),
-    // Window timers require their global receiver when called in a browser.
     setTimer = (callback, delay) => globalThis.setTimeout(callback, delay),
     clearTimer = (handle) => globalThis.clearTimeout(handle),
-    onNoteStart = () => {}, onNoteEnd = () => {},
-    onStatusChange = () => {} } = {}) {
+    onNoteStart = () => {}, onNoteEnd = () => {}, onStatusChange = () => {} } = {}) {
     if (!synth || typeof synth.noteOn !== 'function' || typeof synth.noteOff !== 'function') {
       throw new TypeError('SequencePlayer requires a synthesizer.');
     }
-    this.synth = synth;
-    this.now = now;
-    this.setTimer = setTimer;
-    this.clearTimer = clearTimer;
-    this.onNoteStart = onNoteStart;
-    this.onNoteEnd = onNoteEnd;
-    this.onStatusChange = onStatusChange;
+    Object.assign(this, { synth, now, setTimer, clearTimer, onNoteStart, onNoteEnd, onStatusChange });
     this.current = null;
     this.disposed = false;
   }
 
   get isPlaying() { return this.current !== null; }
+  get signal() { return this.current?.controller.signal ?? null; }
 
-  /** Start synchronously on the user's Play gesture; returns one completion promise. */
   play(sequence, speed = 1) {
     if (this.disposed) throw new Error('Sequence player is disposed.');
-    if (this.current) return this.current.promise; // duplicate Play never forks a worker
+    if (this.current) return this.current.promise;
     if (![0.5, 1, 2].includes(speed)) throw new RangeError('Playback speed must be 0.5, 1, or 2.');
     if (!Array.isArray(sequence)) throw new TypeError('Sequence must be an array.');
     let onset = 0;
-    const notes = sequence.map((note, order) => {
+    const notes = sequence.map((note, index) => {
       if (!note || !Number.isInteger(note.midi) || note.midi < 21 || note.midi > 108 ||
           !Number.isFinite(note.freqHz) || note.freqHz <= 0 ||
           !Number.isFinite(note.deltaMs) || note.deltaMs < 0 ||
           !Number.isFinite(note.durationMs) || note.durationMs < 0) {
-        throw new RangeError(`Invalid recorded note at index ${order}.`);
+        throw new RangeError(`Invalid recorded note at index ${index}.`);
       }
       onset += note.deltaMs / speed;
-      if (!Number.isFinite(onset)) throw new RangeError('Sequence duration is too large.');
-      return { midi: note.midi, freqHz: note.freqHz, onset, duration: note.durationMs / speed };
+      const duration = note.durationMs / speed;
+      if (!Number.isFinite(onset) || !Number.isFinite(duration)) {
+        throw new RangeError('Sequence duration is too large.');
+      }
+      return { midi: note.midi, freqHz: note.freqHz, onset, duration };
     });
-    if (notes.length === 0) return Promise.resolve({ status: 'completed' });
+    if (!notes.length) return Promise.resolve({ status: 'completed' });
 
     let resolve;
     const promise = new Promise((done) => { resolve = done; });
     const run = {
-      promise, resolve, controller: new AbortController(), notes, index: 0,
-      epoch: this.now(), nextTimer: null, releases: new Set(),
-      owned: new Map(), // note instance -> {midi, voice}; never release somebody else's voice
+      controller: new AbortController(), promise, resolve, notes,
+      epoch: this.now(), index: 0, nextTimer: null,
+      releases: new Set(), owned: new Set(), settled: false,
     };
     this.current = run;
-    this.onStatusChange('playing');
+    const active = () => this.current === run && !run.settled && !run.controller.signal.aborted;
 
-    const finish = (status, error) => {
-      if (this.current !== run) return;
-      this.current = null;
-      run.controller.abort();
-      if (run.nextTimer !== null) this.clearTimer(run.nextTimer);
+    const clearScheduled = () => {
+      if (run.nextTimer !== null) {
+        this.clearTimer(run.nextTimer);
+        run.nextTimer = null;
+      }
       for (const handle of run.releases) this.clearTimer(handle);
       run.releases.clear();
-      for (const entry of run.owned.values()) this.releaseOwned(entry);
-      run.owned.clear();
-      this.onStatusChange(status, error);
-      resolve(error ? { status, error } : { status });
     };
+    const finish = (status, error) => {
+      if (run.settled) return;
+      run.settled = true;
+      // Invalidate stale callbacks *before* releasing voices or publishing state.
+      if (this.current === run) this.current = null;
+      if (!run.controller.signal.aborted) run.controller.abort();
+      run.controller.signal.removeEventListener('abort', onAbort);
+      clearScheduled();
+      for (const entry of run.owned) this.releaseOwned(entry);
+      run.owned.clear();
+      try { this.onStatusChange(status, error); } finally {
+        resolve(error ? { status, error } : { status });
+      }
+    };
+    const onAbort = () => finish('stopped');
+    run.controller.signal.addEventListener('abort', onAbort, { once: true });
     run.finish = finish;
 
     const completeIfDone = () => {
-      if (run.index === notes.length && run.owned.size === 0) finish('completed');
+      if (active() && run.index === notes.length && run.owned.size === 0) finish('completed');
     };
-
     const scheduleRelease = (entry, deadline) => {
+      let handle;
       const release = () => {
-        if (this.current !== run || run.controller.signal.aborted) return;
+        if (!active()) return;
         run.releases.delete(handle);
         this.releaseOwned(entry);
         run.owned.delete(entry);
         completeIfDone();
       };
-      // Timers are never shared with note-on scheduling; overlapping notes stay audible.
-      const handle = this.setTimer(release, Math.max(0, deadline - this.now()));
+      handle = this.setTimer(release, Math.max(0, deadline - this.now()));
       run.releases.add(handle);
     };
-
     const processStarts = () => {
-      if (this.current !== run || run.controller.signal.aborted) return;
+      if (!active()) return;
       run.nextTimer = null;
       try {
-        const t = this.now();
-        while (run.index < notes.length && run.epoch + notes[run.index].onset <= t + 0.00001) {
+        const currentTime = this.now();
+        while (active() && run.index < notes.length && run.epoch + notes[run.index].onset <= currentTime + 0.00001) {
           const note = notes[run.index++];
-          // A same-MIDI voice already owned by a prior event cannot be doubled by the synth.
-          // Release its predecessor before retriggering; other pitches remain overlapping.
-          for (const entry of [...run.owned.keys()]) {
+          // One sounding voice per MIDI: a later same-note event supersedes it.
+          for (const entry of [...run.owned]) {
             if (entry.midi === note.midi) {
               this.releaseOwned(entry);
               run.owned.delete(entry);
@@ -102,24 +106,28 @@ export class SequencePlayer {
           }
           if (this.synth.noteOn(note.midi, note.freqHz)) {
             const entry = { midi: note.midi, voice: this.synth.voices?.get(note.midi) ?? null };
-            run.owned.set(entry, entry);
+            run.owned.add(entry);
             this.onNoteStart(note.midi);
+            if (!active()) break;
             scheduleRelease(entry, run.epoch + note.onset + note.duration);
           }
         }
-        if (run.index < notes.length) {
+        if (active() && run.index < notes.length) {
           run.nextTimer = this.setTimer(processStarts, Math.max(0, run.epoch + notes[run.index].onset - this.now()));
         } else completeIfDone();
-      } catch (error) { finish('error', error); }
+      } catch (error) {
+        if (active()) finish('error', error);
+      }
     };
-    // First notes with deltaMs=0 begin in this call, preserving the audio user gesture.
-    processStarts();
+    try {
+      this.onStatusChange('playing');
+      if (active()) processStarts();
+    } catch (error) { if (active()) finish('error', error); }
     return promise;
   }
 
   releaseOwned(entry) {
-    // Only release the exact voice this run started. A stolen/replaced note may now
-    // belong to a physical key or a newer occurrence of the same MIDI.
+    // Do not release a newer physical/replayed voice replacing the owned voice.
     if (!entry.voice || this.synth.voices?.get(entry.midi) === entry.voice) {
       this.synth.noteOff(entry.midi);
       this.onNoteEnd(entry.midi);
@@ -127,14 +135,15 @@ export class SequencePlayer {
   }
 
   stop() {
-    if (!this.current) return false;
-    this.current.finish('stopped');
+    const run = this.current;
+    if (!run) return false;
+    run.controller.abort(); // abort listener settles, cleans timers, releases owned voices
     return true;
   }
 
   dispose() {
     if (this.disposed) return;
-    this.stop();
     this.disposed = true;
+    this.stop();
   }
 }

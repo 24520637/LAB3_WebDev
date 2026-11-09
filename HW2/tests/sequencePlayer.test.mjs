@@ -176,3 +176,80 @@ test('default global timers preserve the browser receiver for playback and Stop'
   assert.equal(cancellations, 1);
   assert.equal(events.length, 2, 'stopped future note must not start');
 });
+
+test('Stop aborts the active AbortSignal and settles exactly once', async () => {
+  const r = rig();
+  assert.equal(r.player.signal, null);
+  assert.equal(r.player.stop(), false);
+  const statuses = [];
+  r.player.onStatusChange = (status) => statuses.push(status);
+  const done = r.player.play(chord);
+  const signal = r.player.signal;
+  assert.equal(signal.aborted, false);
+  let aborts = 0;
+  signal.addEventListener('abort', () => { aborts++; });
+  assert.equal(r.player.stop(), true);
+  assert.equal(signal.aborted, true);
+  assert.equal(aborts, 1);
+  assert.equal(r.player.stop(), false);
+  assert.deepEqual(await done, { status: 'stopped' });
+  assert.deepEqual(statuses, ['playing', 'stopped']);
+  assert.equal(r.timers.size, 0);
+  assert.equal(r.player.signal, null);
+});
+
+test('stale callbacks captured before Stop cannot restart notes or update status', async () => {
+  const r = rig();
+  const statuses = [];
+  r.player.onStatusChange = (status) => statuses.push(status);
+  const done = r.player.play(chord);
+  const zombie = [...r.timers.values()].map(({fn}) => fn);
+  r.advance(100);
+  zombie.push(...[...r.timers.values()].map(({fn}) => fn));
+  r.player.stop();
+  for (const cb of zombie) cb();
+  r.advance(10000);
+  assert.equal(r.starts.length, 3);
+  assert.deepEqual(r.ends.map(([m])=>m).sort(), [60,64,67]);
+  assert.equal(r.timers.size, 0);
+  assert.deepEqual(statuses, ['playing','stopped']);
+  assert.deepEqual(await done, {status:'stopped'});
+});
+
+test('restart after Stop does not let prior run callbacks affect new playback', async () => {
+  const r = rig();
+  const first = r.player.play(chord);
+  const stale = [...r.timers.values()].map(({fn}) => fn);
+  r.player.stop();
+  assert.deepEqual(await first, {status:'stopped'});
+  const second = r.player.play([{midi:72, freqHz:523.25, deltaMs:100, durationMs:200}]);
+  stale.forEach(fn=>fn());
+  assert.deepEqual(r.starts.map(([m])=>m), [60]);
+  r.advance(300);
+  assert.deepEqual(r.starts.map(([m])=>m), [60,72]);
+  assert.deepEqual(await second, {status:'completed'});
+});
+
+test('dispose during a sounding chord aborts timers and blocks subsequent playback', async () => {
+  const r = rig();
+  const done = r.player.play(chord);
+  r.advance(100);
+  const signal = r.player.signal;
+  r.player.dispose();
+  r.player.dispose();
+  assert.equal(signal.aborted,true);
+  assert.equal(r.synth.voices.size,0);
+  assert.equal(r.timers.size,0);
+  assert.deepEqual(await done, {status:'stopped'});
+  assert.throws(()=>r.player.play(chord), /disposed/);
+});
+
+test('normal completion aborts pending run signal as resource cleanup', async () => {
+  const r = rig();
+  const done = r.player.play([{ midi:60, freqHz:261.63, deltaMs:0, durationMs:40 }]);
+  const signal = r.player.signal;
+  r.advance(40);
+  assert.deepEqual(await done, {status:'completed'});
+  assert.equal(signal.aborted,true);
+  assert.equal(r.timers.size,0);
+});

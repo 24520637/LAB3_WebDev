@@ -586,3 +586,66 @@ WCAG conformance evidence.
   workflows work.
 - Physical listening, screen-reader speech, React DevTools Profiler and a new
   responsive/accessibility audit were not performed in this Phase E check.
+
+## Phase F cancellation/cleanup import and verification — 2026-11-09
+
+Imported three changed files from
+`HW2_PhaseF_Cancellation_Cleanup_Verification (2).zip`:
+`src/App.jsx`, `src/sequencer/SequencePlayer.js` and
+`tests/sequencePlayer.test.mjs`. The existing audit, project rules/task plan,
+repaired browser timer defaults and input regression tests were preserved.
+Dependencies/lockfile were unchanged; no install was needed. The ZIP's
+`PHASE_F_VERIFICATION.md` and `verification/*.txt` were not copied into HW2;
+results below come from this run, not supplied logs. No new document was added.
+
+### Automated checks actually executed
+
+- `npm test`: **42 passed, 0 failed, 0 skipped**. Five new sequencer tests
+  cover AbortSignal/one-time settlement, stale callbacks after Stop, restart
+  isolation, repeated disposal during a chord and normal-completion cleanup.
+  These use fake clocks/timers/synths; they do not mount React or prove physical
+  audio output. The existing default browser-timer receiver regression passed.
+- `npm run build`: **passed**, 23 modules transformed.
+
+### Actual browser checks
+
+A temporary diagnostic mounted the imported actual App under StrictMode with
+its existing stylesheet and native Web Audio. Observers delegated to original
+synth/player methods. Native global timers were wrapped only to count pending
+sequencer callbacks and remove them from that count on execution/cancellation;
+the actual browser timers, FIFO logic and note callbacks were not replaced.
+Synthetic pointer events recorded overlapping C4/E4/G4 through the real React
+controls; native button interactions triggered playback and cancellation.
+
+| Check | Observed result |
+| --- | --- |
+| Mount without playing | 0 AudioContexts, 0 sequencer timers, no active keys |
+| Record and replay at 1× | Three notes replayed in onset order with overlapping holds; completed; timers/voices/pressed keys all 0 afterward |
+| Stop before first note | Stopped before any note-on; timers/voices/pressed keys 0; run signal aborted |
+| Restart after Stop | New run played successfully; old canceled run did not restart |
+| Stop during playback with a manually held A5 | C4/E4/G4 and manual MIDI 81 received note-off; timers/voices/pressed keys 0 |
+| Window blur during playback | Dispatched blur stopped playback and cleared all tracked timers/voices/pressed keys |
+| Hidden document during playback | Simulated hidden visibilitychange stopped playback and cleared timers/voices/pressed keys |
+| Play again after repeated cancellation, at 2× and 0.5× | Both completed with overlapping note lifetimes and no pending sequencer timers afterward |
+| Unmount during active three-note playback | Run stopped, signal aborted, timers/voices/pressed keys 0; synth disposed; observed native AudioContext closed |
+
+The nine observed run signals were all aborted at the end of their respective
+completion/cancellation paths. Only one native AudioContext was created across
+the tested plays. A later read after unmount showed no subsequent note starts
+past the canceled run's original deadline. Browser warning/error logs were
+empty. The temporary diagnostic was removed after testing.
+
+No new application defect was confirmed in these tested paths, and no further
+application fixes were made during this import/test task. This is a finite
+behavior/resource check, not proof of absence of memory leaks. No Phase F
+generation prompt has been supplied or invented.
+
+### Not verified
+
+Physical speaker/headphone quality, screen-reader speech, hardware multitouch,
+actual OS focus/tab switching, long-running heap/listener/resource trends,
+React DevTools Profiler, fresh responsive/contrast auditing and same-pitch
+manual-versus-replay ownership were not verified in this check. Blur/hidden
+tests used dispatched events and a temporary visibility getter override;
+they are not recordings of real OS focus changes. Passing unit tests and
+these browser checks do not establish full assignment or WCAG conformance.
