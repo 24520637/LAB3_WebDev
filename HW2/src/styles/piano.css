@@ -1,0 +1,31 @@
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #e9f0f5;
+  background: #101923;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 0; }
+button { font: inherit; }
+.app-shell { width: min(100%, 1200px); margin: 0 auto; padding: clamp(16px, 3vw, 36px); }
+.app-header h1 { margin: 6px 0 12px; font-size: clamp(1.6rem, 3vw, 2.6rem); }
+.app-header p { max-width: 65ch; line-height: 1.5; color: #c3d0dc; }
+.eyebrow { text-transform: uppercase; letter-spacing: .12em; font-weight: 700; font-size: .8rem; }
+.keyboard-section { margin-top: 34px; }
+.keyboard-section h2 { font-size: 1.15rem; }
+.keyboard-help { color: #c3d0dc; line-height: 1.55; }
+.keyboard-scroll { width: 100%; overflow-x: auto; padding: 8px 2px 14px; border-radius: 10px; background: #23313f; scrollbar-gutter: stable; }
+.keyboard { --white-key-width: 36px; --black-key-width: 22px; position: relative; width: calc(52 * var(--white-key-width)); height: 224px; }
+.piano-key { position: absolute; top: 0; padding: 0; display: flex; justify-content: center; align-items: flex-end; cursor: pointer; border: 1px solid #42515f; border-radius: 0 0 5px 5px; user-select: none; touch-action: pan-x; }
+.piano-key--white { left: calc(var(--white-index) * var(--white-key-width)); width: var(--white-key-width); height: 218px; z-index: 1; color: #1a2938; background: linear-gradient(#fff, #e5ebf0); }
+.piano-key--black { left: calc(var(--white-index) * var(--white-key-width) - var(--black-key-width) / 2); width: var(--black-key-width); height: 135px; z-index: 2; color: #fff; background: linear-gradient(#384755, #111821); border-color: #0b111a; }
+.piano-key.is-pressed.piano-key--white { background: #80e5d5; }
+.piano-key.is-pressed.piano-key--black { background: #176e71; }
+.piano-key:focus-visible { outline: 3px solid #ffbf47; outline-offset: -4px; z-index: 3; }
+.piano-key__label { font-size: 10px; font-weight: 700; padding-bottom: 8px; }
+.piano-key--black .piano-key__label { font-size: 9px; writing-mode: vertical-rl; transform: rotate(180deg); }
+.status-panel { margin-top: 24px; padding: 12px 20px; border: 1px solid #47586b; border-radius: 10px; }
+.status-panel p { margin: 6px 0; }
+@media (max-width: 480px) { .app-shell { padding: 16px 12px; } .keyboard { --white-key-width: 32px; --black-key-width: 20px; } }
+@media (prefers-reduced-motion: no-preference) { .piano-key { transition: background-color 90ms ease; } }
