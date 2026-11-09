@@ -12,15 +12,15 @@ export function EffortAnalysis({ phase, effortLog }) {
     <section aria-labelledby={titleId}>
       <h2 id={titleId}>Effort analysis</h2>
       <dl>
-        <dt>Em score</dt>
+        <dt>Your score</dt>
         <dd>{emScore}</dd>
-        <dt>Ai đó score</dt>
+        <dt>Their score</dt>
         <dd>{rivalScore}</dd>
       </dl>
       <output role="status" aria-live="polite">
         {redFlagWarning
-          ? 'Red Flag: Hẹn hò nhưng không yêu — effort is unequal.'
-          : 'No red flag detected.'}
+          ? 'Red Flag: Effort is unequal while dating.'
+          : 'No red flags detected.'}
       </output>
     </section>
   );

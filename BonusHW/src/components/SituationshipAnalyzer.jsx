@@ -11,14 +11,14 @@ import { useGhostingLifecycle } from '../hooks/useGhostingLifecycle.js';
 import './SituationshipAnalyzer.css';
 
 const PHASE_LABELS = Object.freeze({
-  [RelationshipPhase.FRIENDS]: 'Bạn bè',
-  [RelationshipPhase.DATING_NO_LOVE]: 'Hẹn hò nhưng không yêu',
-  [RelationshipPhase.OFFICIAL_LOVE]: 'Yêu chính thức',
-  [RelationshipPhase.GHOSTED_EXIT]: 'Đã dừng lại',
+  [RelationshipPhase.FRIENDS]: 'Friends',
+  [RelationshipPhase.DATING_NO_LOVE]: 'Dating Without Love',
+  [RelationshipPhase.OFFICIAL_LOVE]: 'Official Relationship',
+  [RelationshipPhase.GHOSTED_EXIT]: 'Relationship Ended',
 });
 
 function formatScore(value) {
-  return Number(value.toFixed(8)).toLocaleString('vi-VN');
+  return Number(value.toFixed(8)).toLocaleString('en-US');
 }
 
 export function SituationshipAnalyzer() {
@@ -60,7 +60,7 @@ export function SituationshipAnalyzer() {
     if (!canAddEffort) return;
     const steps = Number(rawSteps);
     if (rawSteps.trim() === '' || !Number.isFinite(steps) || steps < 0) {
-      setInputError('Số lần cố gắng phải là số hữu hạn không âm.');
+      setInputError('Effort steps must be a finite, non-negative number.');
       return;
     }
 
@@ -92,29 +92,29 @@ export function SituationshipAnalyzer() {
     ? (Math.max(0, pendingMessage.deadline - now) / 1000).toFixed(1)
     : null;
   const messageStatus = phase === RelationshipPhase.GHOSTED_EXIT
-    ? 'Đã kết thúc mối quan hệ.'
+    ? 'The relationship has ended.'
     : phase === RelationshipPhase.OFFICIAL_LOVE
-      ? 'Hai người đã xác nhận mối quan hệ.'
+      ? 'The relationship is now official.'
       : pending
-        ? 'Đã gửi tin nhắn, đang chờ phản hồi.'
-        : 'Chưa có tin nhắn đang chờ.';
+        ? 'Message sent. Waiting for a reply.'
+        : 'No message is waiting for a reply.';
 
   return (
     <article className="situationship" aria-labelledby={phaseId}>
       <header className="situationship__header">
         <p className="situationship__eyebrow">Situationship Analyzer</p>
-        <h1 id={phaseId}>Hẹn Hò Nhưng Không Yêu</h1>
-        <p>Trạng thái hiện tại: <strong>{PHASE_LABELS[phase]}</strong></p>
+        <h1 id={phaseId}>Dating Without Love</h1>
+        <p>Current status: <strong>{PHASE_LABELS[phase]}</strong></p>
       </header>
 
       <section aria-labelledby={effortId} className="situationship__section">
-        <h2 id={effortId}>Mức độ cố gắng</h2>
+        <h2 id={effortId}>Effort Scores</h2>
         <div className="situationship__efforts">
           <form onSubmit={event => {
             event.preventDefault();
             submitEffort(EffortActor.EM, emSteps);
           }}>
-            <label htmlFor={emId}>Em — số lần cố gắng (× {EFFORT_MULTIPLIER.EM})</label>
+            <label htmlFor={emId}>Your effort — number of steps (× {EFFORT_MULTIPLIER.EM})</label>
             <input
               id={emId}
               type="number"
@@ -125,14 +125,14 @@ export function SituationshipAnalyzer() {
               onChange={event => setEmSteps(event.target.value)}
               disabled={!canAddEffort}
             />
-            <button type="submit" disabled={!canAddEffort}>Thêm nỗ lực của Em</button>
+            <button type="submit" disabled={!canAddEffort}>Add Your Effort</button>
           </form>
 
           <form onSubmit={event => {
             event.preventDefault();
             submitEffort(EffortActor.AI_DO, otherSteps);
           }}>
-            <label htmlFor={otherId}>Ai đó — số lần cố gắng (× {EFFORT_MULTIPLIER.AI_DO})</label>
+            <label htmlFor={otherId}>The other person's effort — number of steps (× {EFFORT_MULTIPLIER.AI_DO})</label>
             <input
               id={otherId}
               type="number"
@@ -143,14 +143,14 @@ export function SituationshipAnalyzer() {
               onChange={event => setOtherSteps(event.target.value)}
               disabled={!canAddEffort}
             />
-            <button type="submit" disabled={!canAddEffort}>Thêm nỗ lực của Ai đó</button>
+            <button type="submit" disabled={!canAddEffort}>Add Their Effort</button>
           </form>
         </div>
 
         {inputError && <p className="situationship__error" role="alert">{inputError}</p>}
         <dl className="situationship__scores">
-          <div><dt>Điểm của Em</dt><dd>{formatScore(emScore)}</dd></div>
-          <div><dt>Điểm của Ai đó</dt><dd>{formatScore(rivalScore)}</dd></div>
+          <div><dt>Your Score</dt><dd>{formatScore(emScore)}</dd></div>
+          <div><dt>Their Score</dt><dd>{formatScore(rivalScore)}</dd></div>
         </dl>
         <output
           className={redFlagWarning ? 'situationship__warning' : 'situationship__safe'}
@@ -158,34 +158,34 @@ export function SituationshipAnalyzer() {
           aria-live="polite"
         >
           {redFlagWarning
-            ? 'Red Flag: Mức độ cố gắng không cân xứng khi đang hẹn hò.'
-            : 'Không có cảnh báo Red Flag.'}
+            ? 'Red Flag: Effort is unequal while dating.'
+            : 'No red flags detected.'}
         </output>
       </section>
 
       <section className="situationship__section" aria-labelledby={messageId}>
-        <h2 id={messageId}>Tin nhắn và mối quan hệ</h2>
+        <h2 id={messageId}>Messages and Relationship</h2>
         <p role="status" aria-live="polite">{messageStatus}</p>
         {pending && isDating && (
           <p
             className="situationship__countdown"
-            aria-label={`Thời gian chờ phản hồi còn ${secondsRemaining} giây`}
+            aria-label={`${secondsRemaining} seconds left to reply`}
           >
-            Còn {secondsRemaining} giây để phản hồi
+            {secondsRemaining} seconds left to reply
           </p>
         )}
         <div className="situationship__actions">
           <button type="button" disabled={!isDating} onClick={sendMessage}>
-            {pending ? 'Gửi tin nhắn mới' : 'Send Message'}
+            {pending ? 'Send Another Message' : 'Send Message'}
           </button>
           <button type="button" disabled={!isDating || !pending} onClick={reply}>Reply</button>
-          <button type="button" disabled={!isDating} onClick={stop}>Dừng Lại</button>
+          <button type="button" disabled={!isDating} onClick={stop}>Stop</button>
           <button
             type="button"
             disabled={!isDating}
             onClick={() => transition(RelationshipEvent.CONFIRM_MUTUAL_COMMITMENT)}
           >
-            Xác nhận yêu chính thức
+            Make It Official
           </button>
         </div>
       </section>
