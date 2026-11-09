@@ -1,20 +1,20 @@
 # TASK DECOMPOSITION — Bonus Exercise: Hẹn Hò Nhưng Không Yêu State Machine
 
-**Status:** Phase 1 domain and Phase 2 effort analysis implemented · 2026-11-10. A read-only React analysis component exists; the full interactive UI and ghosting timer remain unimplemented.
+**Status:** Phases 1–3 domain, effort analysis, and headless ghosting lifecycle implemented · 2026-11-10. The full interactive UI remains unimplemented.
 
 ## 0. Repository evidence and reuse decision
 
 **Verified workspace:** Repository root is `LAB3_WebDev`. `BonusHW` contains this document and `PROJECT_RULES.md`; the user-provided `BonusExercise_Phase1.zip` supplies a Node ESM package manifest, Phase 1 domain modules, and tests. The checkout also contains `LAB2_Exercises` and several independent React 19/Vite projects. None of those React applications is a confirmed Bonus host.
 
-**P0 inspection:** The root worktree was already dirty before implementation. Preserve all unrelated changes. No Bonus React entry point, app shell, styles, or existing Bonus tests were present. The Bonus package uses Node's built-in test runner and has no React dependency; the Phase 2 `EffortAnalysis` component is intended for integration into a confirmed React host. No dependencies were installed. `src/components/SituationshipAnalyzer.jsx` and `hen-ho-khong-yeu-spec.ts` remain proposed names only.
+**P0 inspection:** The root worktree was already dirty before implementation. Preserve all unrelated changes. No Bonus React entry point, app shell, styles, or existing Bonus tests were present. The Bonus package uses Node's built-in test runner and has no React dependency; the Phase 2 component and Phase 3 hook are intended for integration into a confirmed React host. No dependencies were installed. `src/components/SituationshipAnalyzer.jsx` and `hen-ho-khong-yeu-spec.ts` remain proposed names only.
 
 ## 1. Contract and design decisions
 
 - **Phase 1 FSM contract implemented from the supplied ZIP:** Its four phases are `FRIENDS`, `DATING_NO_LOVE`, `OFFICIAL_LOVE`, `GHOSTED_EXIT`; its events are `START_DATING`, `CONFIRM_MUTUAL_COMMITMENT`, `EXIT`. Only `FRIENDS -> DATING_NO_LOVE`, `DATING_NO_LOVE -> OFFICIAL_LOVE`, and `DATING_NO_LOVE -> GHOSTED_EXIT` are allowed. Unknown states/events and invalid transitions throw; `GHOSTED_EXIT` has no reset. The conflicting prose names were not added as extra states. Instructor confirmation is still needed if the prose is intended to override the ZIP's typed contract.
 - **Phase 1 effort contract implemented from the supplied ZIP:** Append-only immutable records `{id, actor: 'EM'|'AI_DO', steps, multiplier}`; multipliers are `0.1` and `50`, with worked scores `100 * 0.1 = 10` and `1 * 50 = 50`. IDs must be unique; values must be finite and nonnegative; records are frozen. The conflicting `0.05` and `100` example remains unmerged and should be confirmed if it is authoritative instead.
 - **Red flag:** Purely derived on render from phase and logs: `DATING_NO_LOVE && emScore < rivalScore`. No secondary state or effect to store calculated totals/warning.
-- **Ghosting semantics:** Unresolved and not implemented. The start-on-send behavior in this plan is only a proposal; confirm whether the 5-second timer begins on **Send Message** or immediately upon entering `DATING_NO_LOVE`, as well as replacement/cancellation rules.
-- **Cleanup:** `clearTimeout` cancels browser timers; `AbortController` cancels signal-aware asynchronous operations; a request/message identity guard prevents stale completions. `abort()` alone does **not** clear `setTimeout`; garbage collection is managed by the JS runtime and is not manually triggered.
+- **Ghosting semantics implemented from Phase 3:** A five-second window starts only when a message is sent. Replies before the deadline cancel the pending timer; a replacement message supersedes it; Stop, relationship changes, and unmount cancel it. Message ID plus sequence guards stale callbacks. `GHOSTED_EXIT` remains terminal.
+- **Cleanup:** The hook clears the native timeout on pending identity/phase change and unmount. No `AbortController` is needed because this flow has no fetch or signal-aware asynchronous operation; garbage collection is managed by the JS runtime.
 
 ## 2. Work breakdown structure
 
@@ -24,8 +24,8 @@
 | **P1 · T-02** | Implement pure relationship FSM contract (constants/actions/transition guards) using current architecture. | T-01 | **Done:** Phase 1 transitions, terminal exit, and invalid input behavior covered by tests. |
 | **P1 · T-03** | Add immutable effort action log and pure reducer; use stable signal IDs. | T-01 | **Done:** Validated append-only records, duplicate-ID rejection, immutability, and numeric bounds covered by tests. |
 | **P2 · T-04** | Derive `emScore`, `rivalScore`, and red-flag warning directly from logs + phase; present basic readable output. | T-02, T-03 | **Done:** Pure selectors and a read-only semantic React component added; empty/fixture/strict-comparison/overflow cases covered by tests. Component integration into a host app is not verified. |
-| **P3 · T-05** | Define send/reply/pending message state and 5-second ghosting effect following actual React conventions. | T-02 | One active timer per pending message; reply before deadline prevents exit; unanswered message exits once at 5 seconds; input edits do not reset deadline. |
-| **P3 · T-06** | Implement cancellation and resource cleanup for Stop, phase change, replacement, unmount, and React StrictMode. | T-05 | Cleanup clears timers, aborts signal-aware work, excludes stale callbacks; no false ghosting after cancellation; no manual-GC claim. |
+| **P3 · T-05** | Define send/reply/pending message state and 5-second ghosting effect following actual React conventions. | T-02 | **Done:** Reducer starts a deadline only on send; replies before deadline cancel; stale IDs/sequences and premature timeout events are rejected. |
+| **P3 · T-06** | Implement cancellation and resource cleanup for Stop, phase change, replacement, unmount, and React StrictMode. | T-05 | **Done:** Hook cleanup cancels timers; identity guards reject stale callbacks; fake-clock tests cover Stop, phase changes, replacement, unmount, and StrictMode-like cleanup. |
 | **P4 · T-07** | Complete accessible interactive analyzer: phase indicator, effort controls, send/reply/Stop buttons, derived status. | T-04, T-06 | `useId()` ties labels to inputs; native keyboard activation, visible focus, safe disabled states; `<output role="status" aria-live="polite">` announces changes without noisy repetition. |
 | **P4 · T-08** | Apply existing project CSS conventions for mobile-first layout. | T-07 | At 375px no horizontal scroll, clipped labels, or overlapping controls; verify larger width; adequate contrast and reduced-motion support if animation exists. |
 | **P5 · T-09** | Add focused pure-logic and React integration tests using the **verified** existing test tooling; request approval before new dependencies. | T-02–T-08 | Deterministic FSM/reducer/derived-state assertions plus fake-time ghosting/cancellation/StrictMode/unmount tests; keyboard/label/status checks. Tests assert visible behavior, not just internals. |
@@ -39,11 +39,11 @@
 | --- | --- | --- |
 | FSM unit | All allowed/disallowed transitions; exit terminal; stable state on invalid action | Table-driven pure-function tests. |
 | Reducer / derived unit | Immutable append and ordered history; IDs; negative/NaN rejection; empty logs; scores `10`/`50`; warning only for dating imbalance | Input/previous-state snapshots and expected outputs. |
-| Effect integration | Timer begins on send, not on mount; boundary `4999ms` vs `5000ms`; reply prevents exit; new message supersedes old; manual exit; phase switch | Controlled fake timers / `act`, including callback race cases. |
-| Lifecycle | Unmount and React StrictMode setup/cleanup cycles; aborted work does not change state or announce false warning | React integration harness with spies on relevant timer/abort behavior, coupled to observable UI results. |
+| Effect integration | Timer begins on send, not on mount; boundary `4999ms` vs `5000ms`; reply prevents exit; new message supersedes old; manual exit; phase switch; wall-clock adjustment | Controlled fake timers, including callback race cases. |
+| Lifecycle | Unmount and React StrictMode setup/cleanup cycles; stale callback cannot change state | Fake timer scheduler tests for cleanup and observable reducer state. |
 | Accessibility / responsive | Label association, Tab/Enter/Space, live status, visible focus; 375px and wider viewport | Automated DOM tests if configured + manual browser/screen-reader checks; do not equate jsdom with visual or full WCAG validation. |
 
-**Verified:** `cd BonusHW && npm test` (PowerShell equivalent: `Push-Location BonusHW; npm test; Pop-Location`) passed all 14 Phase 1 and Phase 2 domain tests using Node's built-in test runner. The `EffortAnalysis.jsx` file parsed with the already-installed Babel JSX parser; no dependencies were installed. The React component has not been rendered or bundled because Bonus has no React host/dependency setup. No timer, responsive, or browser accessibility checks have been run.
+**Verified:** `cd BonusHW && npm test` (PowerShell equivalent: `Push-Location BonusHW; npm test; Pop-Location`) passed all 27 Phase 1–3 tests using Node's built-in test runner. Timer tests cover send-only start, fractional high-resolution timestamps, deadline, reply/cancellation, replacement, stale callbacks, Stop, phase change, unmount, StrictMode-like cleanup, and monotonic clock behavior. `EffortAnalysis.jsx` parsed with the existing Babel JSX parser and the headless hook passed JS syntax checking. No dependencies were installed. The hook has not been mounted in a real React host; responsive/browser accessibility checks remain unrun.
 
 ## 4. Risks and controls
 
@@ -53,9 +53,9 @@
 | Boolean soup / illegal phase combinations | Single FSM phase with guarded transitions; test all event/state pairs. |
 | In-place log mutation / duplicate effects | Pure reducer, new array/record references, stable event IDs, test immutability. |
 | Derived-state drift | Compute totals and warning directly from current phase/logs during render. |
-| Timer resets from effort changes; stale callbacks after Stop | Key effect to pending message identity; use cleanup, abort and identity/phase guards. |
+| Timer resets from effort changes; stale callbacks after Stop | Key effect to pending message identity; use cleanup and identity/phase guards. |
 | StrictMode double effect setup; misleading “memory freed” claims | Ensure idempotent cleanup; verify no pending jobs; do not assert explicit GC. |
-| Ghosting timer trigger and missing Bonus React host | Confirm timer semantics and intended host before extending beyond Phase 1; do not infer them from the domain archive. |
+| No Bonus React host or React dependency manifest | Hook behavior verified via reducer/scheduler tests and syntax check only; confirm host and run mounted React integration before claiming full UI integration. |
 | Excessive screen-reader announcements / 375px overflow | Stable status text, semantic controls, real keyboard + viewport QA. |
 
 ## 5. Git milestones (planned; do not commit during planning)
@@ -67,4 +67,4 @@ Before either commit: review `git diff` and `git status`, confirm no unrelated f
 
 ## Definition of Done
 
-**Phase 1 domain:** Implemented and verified (8 tests passing). **Remaining:** instructor confirmation of conflicting prose if needed; derived score/red-flag behavior; selection of a React host; ghosting timer contract; UI/accessibility/responsive implementation and verification. No timer or UI behavior is claimed complete.
+**Phases 1–3:** Implemented and verified with 27 passing automated tests. **Remaining:** instructor confirmation of conflicting prose if needed; selection of a React host; full interactive UI, mounted hook integration, accessibility and responsive verification. No full UI integration is claimed complete.
