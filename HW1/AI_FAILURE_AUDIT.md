@@ -312,6 +312,193 @@ passed 59/59 Node tests and the production build passed. Actual screen-reader
 speech remains unverified; the user asked to skip that test. No spoken
 announcement or screen-reader usability result is inferred from DOM changes.
 
-**Audit count:** Two distinct application findings are now documented:
-The assignment's three-bug requirement and real screen-reader/DevTools
-evidence are not complete.
+The two findings above were documented before the independent accessibility
+review below. Actual screen-reader speech and Chrome DevTools evidence
+remain unverified.
+
+## Related prompt for the post-T-12 accessibility review
+
+**Reviewed:** 2026-11-09 (Asia/Saigon).
+
+**User-provided prompt, recorded verbatim:**
+
+```text
+Implement only T-12 from TASK_DECOMPOSITION.md:
+Harden the responsive layout and visible focus behavior.
+
+Requirements:
+
+- Reuse existing CSS wherever appropriate.
+- Support narrow mobile screens, tablet and desktop.
+- Avoid horizontal overflow.
+- Maintain readable labels.
+- Ensure visible keyboard focus.
+- Ensure focus is not obscured.
+- Maintain adequate contrast.
+- Do not rely on color alone to communicate pad state.
+- Keep the seven-pad layout usable at small screen sizes.
+- Respect reduced-motion preferences where animations exist.
+- Avoid unnecessary visual redesign.
+
+Verify at:
+- 375px viewport width.
+- 768px viewport width.
+- Desktop viewport.
+
+Test:
+- Horizontal overflow.
+- Text readability.
+- Keyboard focus visibility.
+- Focus order.
+- Pad spacing and target usability.
+- Contrast.
+
+Do not add new features.
+Do not modify audio logic.
+Report actual test results.
+```
+
+**Attribution limitation:** The user supplied this as the related implementation
+prompt. Comparing every ZIP entry with the working HW1 files showed that
+`HW1_T12.zip` changed only `src/styles.css`. The keyboard controller and
+`DrumPad.jsx` behavior in Findings 03 and 04 already existed before this
+import. These are existing application issues found during the post-T-12
+audit, not proven defects introduced by this prompt or its CSS changes.
+The prompt that originally introduced either implementation is not established
+by this audit. No original generation prompt is invented.
+
+## Failure 03 — Global character shortcuts cannot be disabled or remapped
+
+**Severity:** High. Confirmed WCAG 2.1.4 (Level A) failure within an AA review.
+
+**Affected files/components:** `src/hooks/drumKeyboardController.js`
+(`onKeyDown`, window listeners), `src/hooks/useDrumKeyboard.js`, and
+`src/components/DrumKit.jsx`.
+
+**Related prompt:** The exact user-provided T-12 prompt above, subject to its
+attribution limitation.
+
+### Affected code and cause
+
+```js
+// drumKeyboardController.js
+const pad = padMap.get(event.code);
+if (!pad || pressed.has(event.code) || isEditableEvent(event, hostWindow)) return;
+event.preventDefault();
+pressed.set(event.code, pad.id);
+onHit(pad.id);
+
+hostWindow.addEventListener('keydown', onKeyDown);
+```
+
+```js
+// DrumKit.jsx; useDrumKeyboard's isEnabled argument defaults to true.
+useDrumKeyboard(padMap, onHit, onActiveChange);
+```
+
+The handler is registered on the window and does not require focus on the
+relevant pad. The app provides no UI to disable or remap these shortcuts.
+Editable-target and composition guards protect text entry, but do not address
+accidental character shortcuts while focus is elsewhere on the page.
+
+### Reproduction and actual browser evidence
+
+1. Open a fresh instance at `http://127.0.0.1:5184/`.
+2. Do not Tab to or click a pad. Confirm `document.activeElement.tagName`
+   is `BODY`; history is initially empty.
+3. Press and release W.
+4. Inspect history and the app's available controls.
+
+The in-app browser returned `focus: 'BODY'` before activation. After the
+actual W key action, the rendered history contained one `Kick W` item while
+focus remained on the page. Source and DOM inspection found seven pad
+buttons and no shortcut-disable or remapping control.
+
+### Requirement, impact, and smallest proposed correction
+
+[WCAG 2.1.4 Character Key Shortcuts](https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html)
+requires character-only shortcuts to be switchable off, remappable to include
+a non-printable key, or active only when the relevant component has focus.
+Using physical `event.code` mappings does not exempt character shortcuts.
+
+The current implementation provides none of those alternatives. It can
+unexpectedly trigger hits for speech-input or keyboard users outside an
+editable field. Speech recognition itself was not tested.
+
+The smallest proposed correction is a clearly labelled native checkbox to
+enable/disable physical-key shortcuts, wired to the existing `isEnabled`
+argument of `useDrumKeyboard`. Native Enter/Space activation should continue
+working independently. This is a recommendation only; no application fix was
+made during this documentation request.
+
+## Finding 04 — Momentary drum pads expose toggle-button semantics
+
+**Severity:** Medium. Confirmed source-level semantic mismatch with the
+WAI-ARIA button pattern; relevant to WCAG 4.1.2. Actual screen-reader impact
+and a formal conformance failure were not independently established.
+
+**Affected file/component:** `src/components/DrumPad.jsx`, `DrumPad`.
+
+**Related prompt:** The exact user-provided T-12 prompt above, subject to its
+attribution limitation.
+
+### Affected code and cause
+
+```jsx
+<button
+  type="button"
+  aria-label={`${pad.label} drum, key ${pad.key}`}
+  aria-pressed={isActive}
+  onClick={() => onHit(pad.id, false)}
+>
+```
+
+`isActive` represents transient physical/native press feedback. However,
+`aria-pressed` identifies a toggle button, whose pressed/unpressed state
+represents an on/off choice. A drum hit is a momentary action and does not
+enable or disable a mode. Returning the attribute to false after release
+does not remove the toggle semantics.
+
+### Reproduction and actual browser evidence
+
+1. Open the app and inspect the seven native button elements.
+2. Observe that every button has `aria-pressed="false"` initially.
+3. Tab to Kick. Press and release Enter, then Space.
+4. Inspect history and each button's `aria-pressed` value after release.
+
+The browser DOM inspection confirmed seven `BUTTON` elements with distinct
+names and `aria-pressed="false"`. Enter and Space each added one history
+entry; all seven attributes were false afterward. The earlier body-level W
+hit plus these two actions produced a history count of 3. This confirms
+momentary action behavior, not a persistent toggle. It does not constitute
+a screen-reader transcript.
+
+### Requirement, impact, and smallest proposed correction
+
+The [WAI-ARIA Button Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/button/)
+uses `aria-pressed` to expose a toggle button. Appropriate component roles
+and states are relevant to
+[WCAG 4.1.2 Name, Role, Value](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html).
+The current metadata can lead assistive technology users to expect a
+maintained on/off state that this action does not provide. No exact spoken
+wording or user confusion was measured.
+
+The smallest proposed correction is to remove `aria-pressed`, retaining the
+native button, transient visual feedback, and polite hit-history output.
+No application fix was made during this documentation request.
+
+### Verification scope of the independent accessibility review
+
+- Ran 33 existing Node tests covering keyboard handling, history, audio-level
+  measurement, and pad data: 33 passed, 0 failed. These are not a complete
+  automated accessibility scan and do not detect the issues above.
+- Manually verified native Enter/Space activation, Tab order through seven
+  pads, keyboard entry into the scrollable history, End scrolling that list,
+  and Tab exit. History remained bounded to 20 entries.
+- Verified live-output DOM changes between separated same-pad hits. Actual
+  screen-reader announcements, UniKey operation, and speech input were not
+  verified. No axe or Lighthouse scan was run for this review.
+- Only this audit document was updated for the documentation request.
+  Unverified behavior is not counted as an additional failure, and this
+  record does not claim full WCAG 2.2 AA compliance or completed assignment
+  evidence requirements.

@@ -13,6 +13,7 @@ body {
   margin: 0;
   min-height: 100vh;
   padding: 1rem;
+  overflow-wrap: break-word;
   color: #fff;
   background: #111;
 }
@@ -21,6 +22,7 @@ body {
   width: min(100%, 760px);
   margin: 3rem auto;
   text-align: center;
+  min-width: 0;
 }
 
 .studio-shell h1 {
@@ -31,17 +33,20 @@ body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
+  /* Reserve space for focus outlines without clipping neighboring pads. */
+  padding: 0.375rem;
 }
 
 .drum-pad {
   min-width: 0;
   min-height: 120px;
+  position: relative;
   display: grid;
   place-items: center;
   align-content: center;
   gap: 0.5rem;
   padding: 1rem;
-  border: 2px solid #555;
+  border: 2px solid #999;
   border-radius: 0.75rem;
   background: #222;
   color: #fff;
@@ -60,6 +65,7 @@ body {
 .drum-pad span {
   font-size: 0.95rem;
   overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 .drum-pad:hover {
@@ -68,7 +74,9 @@ body {
 
 .drum-pad:focus-visible {
   outline: 3px solid #fff;
-  outline-offset: 3px;
+  outline-offset: 2px;
+  position: relative;
+  z-index: 1;
 }
 
 .drum-pad:active {
@@ -87,14 +95,39 @@ body {
 
   .drum-pad {
     min-height: 100px;
-    padding: 0.5rem;
+    padding: 0.75rem 0.375rem 1rem;
   }
 }
 
 /* T-05: state-driven visual indicator; pressed-state semantics follow in T-08. */
+/* Text and thicker border communicate a hold without relying on color alone. */
 .drum-pad.is-active {
   background: #444;
   border-color: #fff;
+  border-width: 3px;
+}
+
+.drum-pad.is-active::after {
+  content: "Pressed";
+  position: absolute;
+  bottom: 0.2rem;
+  inset-inline: 0.15rem;
+  font-size: 0.7rem;
+  line-height: 1;
+  font-weight: 600;
+  text-align: center;
+}
+
+@media (max-width: 359px) {
+  .drum-pad-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drum-pad:active {
+    transform: none;
+  }
 }
 
 /* T-09: visible error feedback; no hit-history or meter UI yet. */
@@ -156,3 +189,20 @@ body {
 .audio-level-meter { display: block; width: 100%; height: 1.5rem; }
 .audio-level-reading { font-variant-numeric: tabular-nums; font-weight: 600; }
 .audio-level-explanation { color: #ddd; font-size: 0.9rem; }
+
+/* Keep text, meter, and errors inside the content column on narrow screens. */
+.drum-kit,
+.hit-history,
+.audio-level {
+  min-width: 0;
+}
+
+.hit-history-list {
+  padding-inline-start: 1.5rem;
+}
+
+.audio-level-reading,
+.audio-level-explanation,
+.audio-error {
+  overflow-wrap: anywhere;
+}
