@@ -329,3 +329,77 @@ hardware multitouch and actual screen-reader activation/speech remain
 unverified. All three recorded findings have repaired paths with the retest
 evidence described above; this does not imply full assignment or WCAG
 conformance.
+
+## Phase D archive import and verification — 2026-11-09
+
+Imported application/test code from `HW2_PhaseD_Polyphonic_Synth_Recorder.zip`:
+`src/App.jsx`, `src/components/PianoKeyboard.jsx`, `src/styles/piano.css`,
+`src/audio/PolyphonicSynth.js`, `src/sequencer/MelodyRecorder.js`,
+`tests/polyphonicSynth.test.mjs` and `tests/melodyRecorder.test.mjs`.
+Dependencies and lockfile were identical; no dependencies were installed.
+The archive's `README_PHASE_D.md` and `PHASE_D_VERIFICATION.md` were not added,
+in accordance with the user's instruction to update only this audit document.
+The repaired PianoKey/controller and prior regression tests were identical to
+the archive versions and were preserved. No further application fixes were
+made during this import and verification.
+
+### Automated checks actually executed
+
+- `npm test`: **27 passed, 0 failed, 0 skipped**. These are Node unit/contract
+  tests: 6 note-model, 11 input-controller, 2 synthetic memo-prop, 4 recorder
+  and 4 synthesizer tests. Synth tests use an instrumented fake AudioContext;
+  recorder tests use an injected clock. They do not establish audible quality
+  or mount the React application.
+- `npm run build`: **passed**, 22 modules transformed.
+
+### Browser checks actually executed
+
+A temporary diagnostic mounted the actual App under React StrictMode with
+the existing stylesheet. Native Web Audio was retained; wrappers observed
+context construction, oscillator starts/stops/disconnects, and a passive
+analyser sampled the master signal. Additional controls dispatched synthetic
+pointer events into the existing piano buttons; no component or note callback
+was replaced. Browser controls were activated through user-input automation.
+
+- After mount and a diagnostic sample without playing a key: **0 contexts,
+  0 oscillators**; no autoplay was observed in this path.
+- Synthetic holds for MIDI 60–68: one running context, nine oscillator starts,
+  and pressed MIDI **61–68** after FIFO stealing of MIDI 60. The old oscillator
+  received a scheduled release. A later held-chord sample measured nonzero
+  master RMS (approximately **0.158**, linear amplitude, not dB).
+- Start recording -> hold those nine notes -> release -> Stop recording:
+  the actual table contained **9 rows in MIDI 60–68 onset order**, with
+  frequencies and measured durations/deltas. The stolen C4 entry ended early;
+  the other eight entries retained overlapping durations. Exact recorder
+  arithmetic and out-of-order releases were covered by the fake-clock tests.
+- Release and dispatched window blur returned pressed state to zero. Across
+  two chord runs, all **18** observed oscillators ended and disconnected;
+  the post-blur analyser sample was zero.
+- Clear recording removed the table and displayed `0 notes recorded.`.
+  Native Space and Enter on A4 completed without a stuck pressed key.
+- Unmount after ordinary use closed the one context and disconnected all
+  **20** observed oscillators. A separate run unmounted with eight keys still
+  active: the context closed, App keys were removed, and all **10** observed
+  oscillator nodes disconnected (including a deliberately failed start).
+- Explicit fault injection simulated unavailable AudioContext construction
+  and oscillator-start failure. Each produced the existing accessible alert
+  and left no pressed key after release. Removing the injected fault allowed
+  later interaction to succeed and cleared the alert; the latter run held
+  eight keys before unmount. This is injected failure testing, not a real
+  operating-system device failure.
+- The initial normal browser run's warning/error log was empty.
+
+No new application defect was confirmed by these checks. The temporary browser
+diagnostic was removed; it is not an additional deliverable or a permanent
+automated integration test. No Phase D generation prompt has been supplied,
+and none is invented here.
+
+### Limits and remaining scope
+
+Real speaker/headphone listening, pops/clipping, hardware multitouch, actual
+screen-reader behavior, OS focus switching, asynchronous resume rejection,
+long-running resource growth and React DevTools Profiler remain unverified.
+Nonzero analyser output proves a generated signal, not sound quality at the
+physical output device. Phase D responsive layout was not re-audited at mobile
+and tablet viewports. Playback, speed selection and AudioTaskQueue are absent
+from this archive and were not tested or represented as implemented.
